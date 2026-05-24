@@ -18,6 +18,8 @@
 @theme {
   --font-logo: "Lily Script One", cursive;
   --font-text: "Inter", sans-serif;
+  --color-primaryAction: #EE791C;
+  --color-primaryText: #374151;
   --color-logo: #374151;
   --color-date: #6B7280;
   --color-time: #374151;
