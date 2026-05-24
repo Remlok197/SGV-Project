@@ -9,13 +9,13 @@ export default function Header(){
     if (!isAuthenticated) return null;
     
     return (
-        <header className="flex justify-between items-center p-4 md:p-6 shadow-md">
+        <header className="flex justify-between items-center p-3 lg:p-5 shadow-md">
             <div className="flex items-center gap-2 md:gap-4">
                 <LogoIcon className="size-8 md:size-12 text-logo"/>
                 <h1 className="font-logo text-xl md:text-[2rem] text-logo">Taquería Delgado</h1>
             </div>
 
-            <div className="flex gap-2 md:gap-4">
+            <div className="flex gap-2 md:gap-4 items-center">
                 <div className="hidden sm:flex flex-col gap-2 text-xs md:text-base">
                     <time className="text-right font-tex font-medium text-date">
                         {session.headerDate}

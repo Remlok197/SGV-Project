@@ -1,4 +1,4 @@
-export default function StoreIcon({ className }) {
+export default function LogoIcon({ className }) {
     return (
         <svg
             className={className} 
