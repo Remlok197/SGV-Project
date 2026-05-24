@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import NavButton from "../components/icons/NavButton";
 import LogoIcon from "../components/icons/LogoIcon";
 import OrdenesIcon from "../components/icons/OrdenesIcon";
@@ -7,14 +5,12 @@ import VentasIcon from "../components/icons/VentasIcon";
 import ProductosIcon from "../components/icons/ProductosIcon";
 import ConfiguracionIcon from "../components/icons/ConfiguracionIcon";
 
-export default function NavBar(){
-    const [activeTab, setActiveTab] = useState('ordenes');
-    
+export default function NavBar(){    
     const navItems = [
-        {id: 'ordenes', label: 'Órdenes', icon: OrdenesIcon},
-        {id: 'ventas', label: 'Ventas', icon: VentasIcon},
-        {id: 'productos', label: 'Productos', icon: ProductosIcon},
-        {id: 'configuracion', label: 'Configuración', icon: ConfiguracionIcon},
+        {id: 'ordenes', path: '/ordenes', label: 'Órdenes', icon: OrdenesIcon},
+        {id: 'ventas', path: '/ventas', label: 'Ventas', icon: VentasIcon},
+        {id: 'productos', path: '/productos', label: 'Productos', icon: ProductosIcon},
+        {id: 'configuracion', path: '/configuracion', label: 'Configuración', icon: ConfiguracionIcon},
     ];
 
     return (
@@ -23,14 +19,15 @@ export default function NavBar(){
     
                 const Icono = item.icon;
 
+                const isItemActive = location.pathname.startsWith(item.path);
+
                 return (
                     <NavButton
                         key={item.id}
+                        to={item.path}
                         icon={<Icono className="size-6 md:size-7 lg:size-8" />}
-                        isActive={activeTab === item.id}
-                        onClick={() => setActiveTab(item.id)}
                     >
-                        <span className="font-semibold text-[0.6rem] md:text-sm lg:text-base ">
+                        <span className="font-semibold text-[0.6rem] md:text-sm lg:text-base">
                             {item.label}
                         </span>
                     </NavButton>
