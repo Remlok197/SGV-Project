@@ -3,40 +3,60 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
 
-detalle_modificador = Table(
-    'detalle_modificador',
+detalle_opcion = Table(
+    'detalle_opcion',
     Base.metadata,
     Column('id_detalle', Integer, ForeignKey('detalles_orden.id'), primary_key=True),
-    Column('id_modificador', Integer, ForeignKey('modificadores.id'), primary_key=True)
+    Column('id_opcion', Integer, ForeignKey('opciones_modificadores.id'), primary_key=True)
 )
 
-producto_modificador = Table(
-    'producto_modificador',
+producto_grupo_modificador = Table(
+    'producto_grupo_modificador',
     Base.metadata,
     Column('id_producto', Integer, ForeignKey('productos.id'), primary_key=True),
-    Column('id_modificador', Integer, ForeignKey('modificadores.id'), primary_key=True)
+    Column('id_grupo', Integer, ForeignKey('grupos_modificadores.id'), primary_key=True)
 )
+
+class Categoria(Base):
+    __tablename__ = "categorias"
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    icono = Column(String, nullable=True)
+
+    productos = relationship("Producto", back_populates="categoria")
 
 class Producto(Base):
     __tablename__ = "productos"
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     precio = Column(Float, nullable=False)
-    categoria = Column(String, nullable=False)
     unidades = Column(String, nullable=False)
-    disponibilidad = Column(Boolean, default=True)
+    activo = Column(Boolean, default=True)
+    imagen_url = Column(String, nullable=True)
+    id_categoria = Column(Integer, ForeignKey("categorias.id"), nullable=True)
     
+    categoria = relationship("Categoria", back_populates="productos")
     detalles = relationship("DetalleOrden", back_populates="producto")
-    modificadores = relationship("Modificador", secondary=producto_modificador)
+    modificadores = relationship("GrupoModificador", secondary=producto_grupo_modificador)
 
-class Modificador(Base):
-    __tablename__ = "modificadores"
+class GrupoModificador(Base):
+    __tablename__ = "grupos_modificadores"
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String, nullable=False)
-    tipo = Column(String) 
-    minimo = Column(Integer, nullable=True)
+    nombre = Column(String, nullable=False) 
+    minimo = Column(Integer, default=0)     
     maximo = Column(Integer, nullable=True)
+
+    opciones = relationship("OpcionModificador", back_populates="grupo", cascade="all, delete-orphan")
+
+class OpcionModificador(Base):
+    __tablename__ = "opciones_modificadores"
+    id = Column(Integer, primary_key=True, index=True)
+    grupo_id = Column(Integer, ForeignKey("grupos_modificadores.id"))
+    nombre = Column(String, nullable=False)
     precio_extra = Column(Float, default=0.0)
+    disponible = Column(Boolean, default=True)
+
+    grupo = relationship("GrupoModificador", back_populates="opciones")
     
 
 class Orden(Base):
@@ -60,7 +80,7 @@ class DetalleOrden(Base):
 
     orden = relationship("Orden", back_populates="detalles")
     producto = relationship("Producto", back_populates="detalles")
-    modificadores = relationship("Modificador", secondary=detalle_modificador)
+    opciones = relationship("OpcionModificador", secondary=detalle_opcion)
 
 class Venta(Base):
     __tablename__ = "ventas"
