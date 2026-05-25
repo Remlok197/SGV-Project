@@ -1,5 +1,5 @@
-import UserAvatar from "../components/icons/UserAvatar";
-import LogoIcon from "../components/icons/LogoIcon";
+import UserAvatar from "../components/header/UserAvatar";
+import LogoIcon from "../components/header/LogoIcon";
 import {useAuth} from "../hooks/useAuth";
 export default function Header(){
     const { session, isAuthenticated, loading} = useAuth();

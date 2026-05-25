@@ -20,6 +20,10 @@
   --font-text: "Inter", sans-serif;
   --color-primaryAction: #EE791C;
   --color-primaryText: #374151;
+  --color-secundaryText: #6B7280;
+  --color-terciaryText: #374151;
+  --color-success: #6CBD73;
+  --color-error: #FB4646;
   --color-logo: #374151;
   --color-date: #6B7280;
   --color-time: #374151;

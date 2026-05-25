@@ -1,9 +1,9 @@
-import NavButton from "../components/icons/NavButton";
-import LogoIcon from "../components/icons/LogoIcon";
-import OrdenesIcon from "../components/icons/OrdenesIcon";
-import VentasIcon from "../components/icons/VentasIcon";
-import ProductosIcon from "../components/icons/ProductosIcon";
-import ConfiguracionIcon from "../components/icons/ConfiguracionIcon";
+import NavButton from "../components/navBar/NavButton";
+import LogoIcon from "../components/header/LogoIcon";
+import OrdenesIcon from "../components/navBar/OrdenesIcon";
+import VentasIcon from "../components/navBar/VentasIcon";
+import ProductosIcon from "../components/navBar/ProductosIcon";
+import ConfiguracionIcon from "../components/navBar/ConfiguracionIcon";
 
 export default function NavBar(){    
     const navItems = [
