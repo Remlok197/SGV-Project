@@ -58,7 +58,6 @@ class ProductoBase(BaseModel):
 class ProductoCreate(BaseModel):
     name: str
     price: float
-    unity: str
     isAvailable: bool = True
     categoryId: Optional[int] = None
     modifierIds: Optional[List[int]] = []
@@ -68,7 +67,6 @@ class ProductoResponse(BaseModel):
     categoryId: Optional[int]
     name: str
     price: float
-    unity: str
     modifiers: List[str] 
     isAvailable: bool
     imageUrl: Optional[str] = None
