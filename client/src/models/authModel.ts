@@ -7,7 +7,7 @@ export interface AuthUser{
 
 export interface AuthMetadata{
     serverDateTime: string;
-    systenVersion: string;
+    systemVersion: string;
 }
 
 export interface AuthApiResponse {
