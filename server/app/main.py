@@ -5,12 +5,26 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from typing import List
 
+import jwt
+import bcrypt
+from datetime import datetime, timedelta, timezone
+
 from .database import engine, Base, get_db
 from . import models, schemas
+
+from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="API Taquería Delgado", version="1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Para desarrollo local permitimos todo. En producción se restringe.
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 IMAGENES_DIR = "imagenes_productos"
 os.makedirs(IMAGENES_DIR, exist_ok=True)
@@ -19,9 +33,31 @@ os.makedirs(IMAGENES_DIR, exist_ok=True)
 # Si buscas http://127.0.0.1:8000/imagenes/taco.jpg, FastAPI te devuelve la foto jeje
 app.mount("/imagenes", StaticFiles(directory=IMAGENES_DIR), name="imagenes")
 
+# --- Config de seguridad ---
+SECRET_KEY = "SecurityQwertyz.." 
+ALGORITHM = "HS256"
+
+def get_password_hash(password: str) -> str:
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed_bytes = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed_bytes.decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    password_byte_enc = plain_password.encode('utf-8')
+    hashed_password_byte_enc = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password_byte_enc, hashed_password_byte_enc)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(hours=8)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 @app.get("/")
 def read_root():
     return {"mensaje": "Revivan el server"}
+
 # RUTAS DE LAS CATEGORIAS BABYYYY
 # POST (CREATE)
 @app.post("/categorias/", response_model=schemas.CategoriaResponse)
@@ -178,3 +214,41 @@ def eliminar_modificador(modificador_id: int, db: Session = Depends(get_db)):
     db.delete(modificador_db)
     db.commit()
     return {"mensaje": "Modificador eliminado correctamente"}
+
+#RUTAS DE LOS USUARIOS Y AUTENTICACION BABYYY
+# Auxiliar Endpoint First User
+@app.post("/api/usuarios")
+def registrar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db)):
+    hashed_pwd = get_password_hash(usuario.password)
+    nuevo_usuario = models.Usuario(
+        nombre=usuario.nombre,
+        rol=usuario.rol,
+        hashed_password=hashed_pwd
+    )
+    db.add(nuevo_usuario)
+    db.commit()
+    db.refresh(nuevo_usuario)
+    return {"mensaje": f"Usuario {nuevo_usuario.nombre} creado con éxito"}
+
+# Official Endpoint
+@app.post("/api/auth/login", response_model=schemas.LoginResponse)
+def login(credenciales: schemas.LoginRequest, db: Session = Depends(get_db)):
+    usuario_db = db.query(models.Usuario).filter(models.Usuario.nombre == credenciales.username).first()
+    
+    if not usuario_db or not verify_password(credenciales.password, usuario_db.hashed_password):
+        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
+    
+    access_token = create_access_token(data={"sub": usuario_db.nombre, "rol": usuario_db.rol})
+    
+    return schemas.LoginResponse(
+        token=access_token,
+        user=schemas.UsuarioInfo(
+            id=usuario_db.id,
+            name=usuario_db.nombre,
+            role=usuario_db.rol
+        ),
+        metadata=schemas.MetadataInfo(
+            serverDateTime=datetime.utcnow().isoformat() + "Z",
+            systemVersion="1.0.0"
+        )
+    )

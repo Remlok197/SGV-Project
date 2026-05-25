@@ -84,3 +84,28 @@ class MetadataWrapper(BaseModel):
 class ProductCatalogResponse(BaseModel):
     data: DataWrapper
     metadata: MetadataWrapper
+
+# --- USUARIOS Y LOGIN ---
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class UsuarioInfo(BaseModel):
+    id: int
+    name: str
+    role: str
+
+class MetadataInfo(BaseModel):
+    serverDateTime: str
+    systemVersion: str
+
+class LoginResponse(BaseModel):
+    token: str
+    user: UsuarioInfo
+    metadata: MetadataInfo
+    
+class UsuarioCreate(BaseModel):
+    nombre: str
+    password: str
+    rol: str
