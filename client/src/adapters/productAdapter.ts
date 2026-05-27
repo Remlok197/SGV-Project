@@ -1,12 +1,13 @@
-import { ProductApiResponse, ProductCatalog, Product, Category } from '../models/productModel';
+import { ProductApiResponse, ProductCatalog, Product, Category, ProductFormData } from '../schemas/productSchema';
 
 export const createProductCatalogAdapter = (apiResponse: ProductApiResponse): ProductCatalog => {
-    const { categories, products } = apiResponse.data;
+   
+    const { categorias, productos } = apiResponse.data;
 
-    const adaptedCategories: Category[] = categories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        icon: cat.icon
+    const adaptedCategories: Category[] = categorias.map((cat) => ({
+        id: String(cat.id), 
+        name: cat.nombre,   
+        icon: cat.icono     
     }));
 
     const priceFormatter = new Intl.NumberFormat('es-MX', {
@@ -15,19 +16,39 @@ export const createProductCatalogAdapter = (apiResponse: ProductApiResponse): Pr
         minimumFractionDigits: 2
     });
 
-    const adaptedProducts: Product[] = products.map(prod => ({
-        id: prod.id,
-        categoryId: prod.categoryId,
-        name: prod.name,
-        formattedPrice: priceFormatter.format(prod.price),
-        description: prod.modifiers.join(', '), 
-        isAvailable: prod.isAvailable,
-        imageUrl: prod.imageUrl
+    const adaptedProducts: Product[] = productos.map((prod) => ({
+        id: String(prod.id),
+        categoryId: String(prod.id_categoria), 
+        name: prod.nombre,
+        units: prod.unidades,
+        formattedPrice: priceFormatter.format(prod.precio), 
+        description: prod.modificadores.join(', '), 
+        isAvailable: prod.activo, 
+        imageUrl: prod.imagen_url 
     }));
 
     return {
         categories: adaptedCategories,
         products: adaptedProducts,
-        totalItems: apiResponse.metadata.totalItems
+        totalItems: apiResponse.metadata.total_items
+    };
+};
+
+export const createProductPayloadAdapter = (formData: ProductFormData) => {
+    return {
+        nombre: formData.name,
+        precio: Number(formData.price),
+        unidades: formData.units,
+        activo: formData.isAvailable,
+        id_categoria: parseInt(formData.categoryId, 10),
+        
+        ids_modificadores: formData.modifiers 
+            ? formData.modifiers
+                .split(',')                  
+                .map(id => id.trim())        
+                .filter(id => id !== '')     
+                .map(id => parseInt(id, 10)) 
+                .filter(id => !isNaN(id))    
+            : []
     };
 };

@@ -1,10 +1,10 @@
 import PageHeader from "../components/shared/PageHeader";
-
-export default function ConfiguracionPage() {
+import { Input } from "@/components/ui/input"
+export default function VentasPage() {
     return (
         <div className="p-4">
-            <PageHeader title={"Configuración"}></PageHeader>
-            <p>Lorem ipsum.</p>
+            <PageHeader title={"Configuracion"}></PageHeader>
+                <Input className="" placeholder="Enter text" />
         </div>
     );
 }

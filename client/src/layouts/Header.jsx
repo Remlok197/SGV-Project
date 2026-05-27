@@ -9,7 +9,7 @@ export default function Header(){
     if (!isAuthenticated) return null;
     
     return (
-        <header className="flex justify-between items-center p-3 lg:p-5 shadow-md">
+        <header className="mb-0.5 flex justify-between items-center p-3 lg:p-5 shadow-md">
             <div className="flex items-center gap-2 md:gap-4">
                 <LogoIcon className="size-8 md:size-12 text-logo"/>
                 <h1 className="font-logo text-xl md:text-[2rem] text-logo">Taquería Delgado</h1>
