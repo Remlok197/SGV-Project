@@ -9,8 +9,9 @@ import { useProducts } from "../../hooks/useProducts";
 
 export default function ProductosPage() {
     const [activeCategory, setActiveCategory] = useState("Todos"); 
+    const [actionError, setActionError] = useState(null);
     
-    const { catalog, loading, error, addProduct } = useProducts(activeCategory); 
+    const { catalog, loading, error, addProduct, deleteProduct } = useProducts(activeCategory); 
     
     const [isPanelOpen, setIsPanelOpen] = useState(false); 
 
@@ -18,8 +19,16 @@ export default function ProductosPage() {
         console.log(`Abriendo panel para editar producto: ${productId}`);
     };
 
-    const handleDeleteProduct = (productId) => {
-        console.log(`Borrando producto: ${productId}`);
+    const handleDeleteProduct = async (productId) => {
+        setActionError(null);
+        if (window.confirm("¿Estás seguro de que deseas eliminar este producto?")) {
+            try {
+                await deleteProduct(productId);
+            } catch (err) {
+                setActionError(err.message || "Error al eliminar el producto.");
+                setTimeout(() => setActionError(null), 5000);
+            }
+        }
     };
 
     if (loading) return <div className="flex justify-center items-center h-64"><p className="text-secundaryText font-medium">Cargando productos...</p></div>;
@@ -30,6 +39,15 @@ export default function ProductosPage() {
             <div className={`flex-1 h-full pb-12 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out ${isPanelOpen ? 'pr-100 lg:pr-130 ' : ''}`}>
                 <div className="flex flex-col gap-2 md:gap-2 lg:gap-3 pt-6 px-13 md:px-20 lg:px-22">
                     <PageHeader title={"Productos"} />
+                    
+                    {actionError && (
+                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center justify-between text-sm">
+                            <span>{actionError}</span>
+                            <button onClick={() => setActionError(null)} className="text-red-500 hover:text-red-700 font-bold ml-2 cursor-pointer">
+                                &times;
+                            </button>
+                        </div>
+                    )}
                     
                     <div className="-mx-13 md:-mx-20 lg:-mx-22">
                         <CategoryDivider 

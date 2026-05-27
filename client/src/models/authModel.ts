@@ -1,22 +1,21 @@
-export interface AuthUser{
+export interface AuthUser {
     id: number;
-    name: string;
-    role: string;
+    nombre: string;
+    rol: string;
 }
 
-
-export interface AuthMetadata{
-    serverDateTime: string;
-    systemVersion: string;
+export interface AuthMetadata {
+    fecha_hora_servidor: string;
+    version_sistema: string;
 }
 
 export interface AuthApiResponse {
     token: string;
-    user: AuthUser;
+    usuario: AuthUser;
     metadata: AuthMetadata;
 }
 
-export interface UserSession{
+export interface UserSession {
     token: string;
     userId: number;
     userName: string;
@@ -25,3 +24,7 @@ export interface UserSession{
     headerTime: string;
 }
 
+export interface LoginCredentials {
+    username: string;
+    password: string;
+}

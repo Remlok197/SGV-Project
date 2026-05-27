@@ -3,6 +3,7 @@ import shutil
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 
 import jwt
@@ -20,7 +21,8 @@ app = FastAPI(title="API Taquería Delgado", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Para desarrollo local permitimos todo. En producción se restringe.
+    # Para desarrollo local permitimos todo. En producción se restringe.
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,8 +36,9 @@ os.makedirs(IMAGENES_DIR, exist_ok=True)
 app.mount("/imagenes", StaticFiles(directory=IMAGENES_DIR), name="imagenes")
 
 # --- Config de seguridad ---
-SECRET_KEY = "SecurityQwertyz.." 
+SECRET_KEY = "SecurityQwertyz.."
 ALGORITHM = "HS256"
+
 
 def get_password_hash(password: str) -> str:
     pwd_bytes = password.encode('utf-8')
@@ -43,10 +46,12 @@ def get_password_hash(password: str) -> str:
     hashed_bytes = bcrypt.hashpw(pwd_bytes, salt)
     return hashed_bytes.decode('utf-8')
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     password_byte_enc = plain_password.encode('utf-8')
     hashed_password_byte_enc = hashed_password.encode('utf-8')
     return bcrypt.checkpw(password_byte_enc, hashed_password_byte_enc)
+
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -54,13 +59,16 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+
 @app.get("/")
 def read_root():
     return {"mensaje": "Revivan el server"}
 
 # RUTAS DE LAS CATEGORIAS BABYYYY
 # POST (CREATE)
-@app.post("/categorias/", response_model=schemas.CategoriaResponse)
+
+
+@app.post("/api/categorias/", response_model=schemas.CategoriaResponse)
 def crear_categoria(categoria: schemas.CategoriaCreate, db: Session = Depends(get_db)):
     nueva_categoria = models.Categoria(
         nombre=categoria.nombre,
@@ -72,109 +80,138 @@ def crear_categoria(categoria: schemas.CategoriaCreate, db: Session = Depends(ge
     return nueva_categoria
 
 # GET (READ)
-@app.get("/categorias/", response_model=List[schemas.CategoriaResponse])
+
+
+@app.get("/api/categorias/", response_model=List[schemas.CategoriaResponse])
 def obtener_categorias(db: Session = Depends(get_db)):
     return db.query(models.Categoria).all()
 
 # RUTAS DE LOS PRODUCTOS BABYYYY
 # POST ENDPOINT (CREATE)
+
+
 @app.post("/api/products", response_model=schemas.ProductoResponse)
 def crear_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
     nuevo_producto = models.Producto(
-        nombre=producto.name, 
-        precio=producto.price, 
-        activo=producto.isAvailable,
-        id_categoria=producto.categoryId
-    )
-    
-    if producto.modifierIds:
+        **producto.model_dump(exclude={'ids_modificadores'}))
+
+    if producto.ids_modificadores:
         modificadores_db = db.query(models.GrupoModificador).filter(
-            models.GrupoModificador.id.in_(producto.modifierIds)
+            models.GrupoModificador.id.in_(producto.ids_modificadores)
         ).all()
         nuevo_producto.modificadores = modificadores_db
 
     db.add(nuevo_producto)
     db.commit()
     db.refresh(nuevo_producto)
-    
-    lista_modificadores = [m.nombre.lower() for m in nuevo_producto.modificadores]
-    
-    return schemas.ProductoResponse(
-        id=nuevo_producto.id,
-        categoryId=nuevo_producto.id_categoria,
-        name=nuevo_producto.nombre,
-        price=nuevo_producto.precio,
-        modifiers=lista_modificadores,
-        isAvailable=nuevo_producto.activo,
-        imageUrl=nuevo_producto.imagen_url
-    )
+
+    respuesta = schemas.ProductoResponse.model_validate(nuevo_producto)
+    respuesta.modificadores = [m.nombre.lower()
+                               for m in nuevo_producto.modificadores]
+
+    return respuesta
 
 # IMAGE POST ENDPOINT (CREATE)
-@app.post("/products/{producto_id}/imagen")
+
+
+@app.post("/api/products/{producto_id}/imagen")
 def subir_imagen_producto(producto_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    producto_db = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+    producto_db = db.query(models.Producto).filter(
+        models.Producto.id == producto_id).first()
     if not producto_db:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    
+
     nombre_seguro = file.filename.replace(" ", "_")
     file_path = os.path.join(IMAGENES_DIR, f"{producto_id}_{nombre_seguro}")
-    
+
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        
+
     url_publica = f"/imagenes/{producto_id}_{nombre_seguro}"
     producto_db.imagen_url = url_publica
-    
+
     db.commit()
     db.refresh(producto_db)
-    
+
     return {"mensaje": "Imagen subida exitosamente", "imagen_url": url_publica}
 
 # GET ENDPOINT (READ)
-@app.get("/api/products", response_model=schemas.ProductCatalogResponse)
+
+
+@app.get("/api/products", response_model=schemas.CatalogoResponse)
 def obtener_catalogo_completo(db: Session = Depends(get_db)):
     categorias_db = db.query(models.Categoria).all()
-    categories_response = [
-        schemas.CategoriaResponse(
-            id=c.id,
-            name=c.nombre,
-            icon=c.icono
-        ) for c in categorias_db
-    ]
-
     productos_db = db.query(models.Producto).all()
-    products_response = []
-    
-    for p in productos_db:
-        lista_modificadores = [m.nombre.lower() for m in p.modificadores]
-        
-        products_response.append(
-            schemas.ProductoResponse(
-                id=p.id,
-                categoryId=p.id_categoria,
-                name=p.nombre,
-                price=p.precio,
-                modifiers=lista_modificadores,
-                isAvailable=p.activo,
-                imageUrl=p.imagen_url
-            )
-        )
 
-    return schemas.ProductCatalogResponse(
+    productos_response = []
+    for p in productos_db:
+        prod_resp = schemas.ProductoResponse.model_validate(p)
+        prod_resp.modificadores = [m.nombre.lower() for m in p.modificadores]
+        productos_response.append(prod_resp)
+
+    return schemas.CatalogoResponse(
         data=schemas.DataWrapper(
-            categories=categories_response,
-            products=products_response
+            categorias=categorias_db,
+            productos=productos_response
         ),
         metadata=schemas.MetadataWrapper(
-            totalItems=len(products_response)
+            total_items=len(productos_response)
         )
     )
 
+
+@app.put("/api/products/{producto_id}", response_model=schemas.ProductoResponse)
+def editar_producto(producto_id: int, producto: schemas.ProductoUpdate, db: Session = Depends(get_db)):
+    producto_db = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+    if not producto_db:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    # Update basic fields if provided
+    update_data = producto.model_dump(exclude_unset=True, exclude={'ids_modificadores'})
+    for key, value in update_data.items():
+        setattr(producto_db, key, value)
+
+    # Sync modifiers if provided
+    if producto.ids_modificadores is not None:
+        modificadores_db = db.query(models.GrupoModificador).filter(
+            models.GrupoModificador.id.in_(producto.ids_modificadores)
+        ).all()
+        producto_db.modificadores = modificadores_db
+
+    db.commit()
+    db.refresh(producto_db)
+
+    respuesta = schemas.ProductoResponse.model_validate(producto_db)
+    respuesta.modificadores = [m.nombre.lower() for m in producto_db.modificadores]
+    return respuesta
+
+
+@app.delete("/api/products/{producto_id}")
+def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
+    producto_db = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+    if not producto_db:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    try:
+        db.delete(producto_db)
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar el producto porque está asociado a órdenes o registros existentes. Se sugiere desactivar el producto."
+        )
+
+    return {"mensaje": "Producto eliminado exitosamente"}
+
+
 # RUTAS DE LOS MODIFICADORES BABYYYY
 # POST (CREATE)
+
+
 @app.post("/modificadores/", response_model=schemas.GrupoModificadorResponse)
 def crear_grupo_modificador(grupo: schemas.GrupoModificadorCreate, db: Session = Depends(get_db)):
-    
+
     nuevo_grupo = models.GrupoModificador(
         nombre=grupo.nombre,
         minimo=grupo.minimo,
@@ -182,8 +219,8 @@ def crear_grupo_modificador(grupo: schemas.GrupoModificadorCreate, db: Session =
     )
     db.add(nuevo_grupo)
     db.commit()
-    db.refresh(nuevo_grupo) 
-    
+    db.refresh(nuevo_grupo)
+
     for opcion in grupo.opciones:
         nueva_opcion = models.OpcionModificador(
             grupo_id=nuevo_grupo.id,
@@ -192,34 +229,41 @@ def crear_grupo_modificador(grupo: schemas.GrupoModificadorCreate, db: Session =
             disponible=opcion.disponible
         )
         db.add(nueva_opcion)
-    
+
     db.commit()
-    db.refresh(nuevo_grupo) 
-    
+    db.refresh(nuevo_grupo)
+
     return nuevo_grupo
 
 # GET (READ)
+
+
 @app.get("/modificadores/", response_model=List[schemas.GrupoModificadorResponse])
 def obtener_grupos_modificadores(db: Session = Depends(get_db)):
     return db.query(models.GrupoModificador).all()
 
 # DELETE
+
+
 @app.delete("/modificadores/{modificador_id}")
 def eliminar_modificador(modificador_id: int, db: Session = Depends(get_db)):
-    modificador_db = db.query(models.Modificador).filter(models.Modificador.id == modificador_id).first()
-    
+    modificador_db = db.query(models.Modificador).filter(
+        models.Modificador.id == modificador_id).first()
+
     if not modificador_db:
-        raise HTTPException(status_code=404, detail="Modificador no encontrado")
-        
+        raise HTTPException(
+            status_code=404, detail="Modificador no encontrado")
+
     db.delete(modificador_db)
     db.commit()
     return {"mensaje": "Modificador eliminado correctamente"}
 
-#RUTAS DE LOS USUARIOS Y AUTENTICACION BABYYY
-# Auxiliar Endpoint First User
+# RUTAS DE LOS USUARIOS Y AUTENTICACION BABYYY
+
+
 @app.post("/api/usuarios")
 def registrar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db)):
-    hashed_pwd = get_password_hash(usuario.password)
+    hashed_pwd = get_password_hash(usuario.contrasena)
     nuevo_usuario = models.Usuario(
         nombre=usuario.nombre,
         rol=usuario.rol,
@@ -231,24 +275,32 @@ def registrar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_
     return {"mensaje": f"Usuario {nuevo_usuario.nombre} creado con éxito"}
 
 # Official Endpoint
+
+
 @app.post("/api/auth/login", response_model=schemas.LoginResponse)
 def login(credenciales: schemas.LoginRequest, db: Session = Depends(get_db)):
-    usuario_db = db.query(models.Usuario).filter(models.Usuario.nombre == credenciales.username).first()
-    
-    if not usuario_db or not verify_password(credenciales.password, usuario_db.hashed_password):
-        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
-    
-    access_token = create_access_token(data={"sub": usuario_db.nombre, "rol": usuario_db.rol})
-    
+    usuario_db = db.query(models.Usuario).filter(
+        models.Usuario.nombre == credenciales.nombre_usuario
+    ).first()
+
+    if not usuario_db or not verify_password(credenciales.contrasena, usuario_db.hashed_password):
+        raise HTTPException(
+            status_code=401, detail="Usuario o contraseña incorrectos"
+        )
+
+    access_token = create_access_token(
+        data={"sub": usuario_db.nombre, "rol": usuario_db.rol}
+    )
+
     return schemas.LoginResponse(
         token=access_token,
-        user=schemas.UsuarioInfo(
+        usuario=schemas.UsuarioInfo(
             id=usuario_db.id,
-            name=usuario_db.nombre,
-            role=usuario_db.rol
+            nombre=usuario_db.nombre,
+            rol=usuario_db.rol
         ),
         metadata=schemas.MetadataInfo(
-            serverDateTime=datetime.utcnow().isoformat() + "Z",
-            systemVersion="1.0.0"
+            fecha_hora_servidor=datetime.utcnow().isoformat() + "Z",
+            version_sistema="1.0.0"
         )
     )

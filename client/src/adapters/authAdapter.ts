@@ -1,15 +1,15 @@
 import { AuthApiResponse, UserSession } from "../models/authModel";
 
-export const createSessionAdapter = (apiResponse: AuthApiResponse): UserSession =>{
-    const dateObj = new Date(apiResponse.metadata.serverDateTime);
+export const createSessionAdapter = (apiResponse: AuthApiResponse): UserSession => {
+  const dateObj = new Date(apiResponse.metadata.fecha_hora_servidor);
 
-    const formattedDate = dateObj.toLocaleDateString('es-MX', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
+  const formattedDate = dateObj.toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
-    const formattedTime = dateObj.toLocaleTimeString('es-MX', {
+  const formattedTime = dateObj.toLocaleTimeString('es-MX', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
@@ -17,9 +17,9 @@ export const createSessionAdapter = (apiResponse: AuthApiResponse): UserSession 
 
   return {
     token: apiResponse.token,
-    userId: apiResponse.user.id,
-    userName: apiResponse.user.name,
-    userRole: apiResponse.user.role,
+    userId: apiResponse.usuario.id,
+    userName: apiResponse.usuario.nombre,
+    userRole: apiResponse.usuario.rol,
     headerDate: formattedDate,
     headerTime: formattedTime.toUpperCase(),
   };

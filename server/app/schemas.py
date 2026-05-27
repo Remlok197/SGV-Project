@@ -2,110 +2,137 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 # --- OPCIONES DE MODIFICADORES ---
+
+
 class OpcionBase(BaseModel):
     nombre: str
     precio_extra: float = 0.0
     disponible: bool = True
 
+
 class OpcionCreate(OpcionBase):
     pass
 
+
 class OpcionResponse(OpcionBase):
     id: int
+
     class Config:
         from_attributes = True
 
 # --- GRUPOS DE MODIFICADORES ---
+
+
 class GrupoModificadorBase(BaseModel):
     nombre: str
     minimo: int = 0
     maximo: Optional[int] = None
 
-class GrupoModificadorCreate(GrupoModificadorBase):    
+
+class GrupoModificadorCreate(GrupoModificadorBase):
     opciones: List[OpcionCreate] = []
+
 
 class GrupoModificadorResponse(GrupoModificadorBase):
     id: int
-    opciones: List[OpcionResponse] = [] 
+    opciones: List[OpcionResponse] = []
+
     class Config:
         from_attributes = True
 
-# --- CATEGORIA ---
+# --- CATEGORÍAS ---
+
+
 class CategoriaBase(BaseModel):
     nombre: str
     icono: Optional[str] = None
 
+
 class CategoriaCreate(CategoriaBase):
     pass
 
-class CategoriaResponse(BaseModel):
+
+class CategoriaResponse(CategoriaBase):
     id: int
-    name: str
-    icon: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 # --- PRODUCTOS ---
+
+
 class ProductoBase(BaseModel):
     nombre: str
     precio: float
     unidades: str
     activo: bool = True
-    imagen_url: Optional[str] = None
     id_categoria: Optional[int] = None
 
-class ProductoCreate(BaseModel):
-    name: str
-    price: float
-    isAvailable: bool = True
-    categoryId: Optional[int] = None
-    modifierIds: Optional[List[int]] = []
 
-class ProductoResponse(BaseModel):
+class ProductoCreate(ProductoBase):
+    ids_modificadores: Optional[List[int]] = []
+
+
+class ProductoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    precio: Optional[float] = None
+    unidades: Optional[str] = None
+    activo: Optional[bool] = None
+    id_categoria: Optional[int] = None
+    ids_modificadores: Optional[List[int]] = None
+    imagen_url: Optional[str] = None
+
+
+class ProductoResponse(ProductoBase):
     id: int
-    categoryId: Optional[int]
-    name: str
-    price: float
-    modifiers: List[str] 
-    isAvailable: bool
-    imageUrl: Optional[str] = None
+    imagen_url: Optional[str] = None
+    modificadores: List[str] = []
 
     class Config:
         from_attributes = True
 
+# --- WRAPPERS DEL CATÁLOGO ---
+
+
 class DataWrapper(BaseModel):
-    categories: List[CategoriaResponse]
-    products: List[ProductoResponse]
+    categorias: List[CategoriaResponse]
+    productos: List[ProductoResponse]
+
 
 class MetadataWrapper(BaseModel):
-    totalItems: int
+    total_items: int
 
-class ProductCatalogResponse(BaseModel):
+
+class CatalogoResponse(BaseModel):
     data: DataWrapper
     metadata: MetadataWrapper
 
 # --- USUARIOS Y LOGIN ---
 
+
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    nombre_usuario: str
+    contrasena: str
+
 
 class UsuarioInfo(BaseModel):
     id: int
-    name: str
-    role: str
+    nombre: str
+    rol: str
+
 
 class MetadataInfo(BaseModel):
-    serverDateTime: str
-    systemVersion: str
+    fecha_hora_servidor: str
+    version_sistema: str
+
 
 class LoginResponse(BaseModel):
     token: str
-    user: UsuarioInfo
+    usuario: UsuarioInfo
     metadata: MetadataInfo
-    
+
+
 class UsuarioCreate(BaseModel):
     nombre: str
-    password: str
+    contrasena: str
     rol: str
