@@ -45,12 +45,18 @@ export function useProducts() {
         await fetchCatalogData();
     };
 
+    const updateProduct = async (productId: string, formData: ProductFormData) => {
+        await productService.updateProduct(productId, formData);
+        await fetchCatalogData();
+    };
+
     return {
         catalog,
         loading,
         error,
         addProduct, 
         deleteProduct,
+        updateProduct,
         refreshCatalog: fetchCatalogData
     };
 }

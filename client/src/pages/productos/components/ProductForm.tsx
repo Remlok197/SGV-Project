@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { Button, Form } from "@heroui/react";
-import { productFormSchema } from "../../../schemas/productSchema"; 
+import { productFormSchema, Product } from "../../../schemas/productSchema"; 
 import ImageUpload from "./ImageUpload";
 import { FormTextField } from "./FormTextField";
-import { FormSelect } from "./FormSelectField"; // <-- Importa tu nuevo componente
+import { FormSelect } from "./FormSelectField"; 
 import { FieldLabel } from "../../../components/ui/field";
 
 interface ProductFormProps {
+  product?: Product | null;
+  categories: { id: string; name: string }[];
   onCancel?: () => void;
   onSuccess?: () => void;
   onSave: (data: any) => Promise<void>; 
 }
 
-export default function ProductForm({ onCancel, onSuccess, onSave }: ProductFormProps) {
+export default function ProductForm({ product, categories, onCancel, onSuccess, onSave }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -59,7 +61,7 @@ export default function ProductForm({ onCancel, onSuccess, onSave }: ProductForm
     <Form className="flex flex-col h-full w-full" onSubmit={onSubmit}>
       <div className="grid grid-cols-2 gap-x-4 gap-y-6 w-full">
         
-        <ImageUpload/>
+        <ImageUpload defaultImageUrl={product?.imageUrl} />
 
         {/* NOMBRE */}
         <FormTextField
@@ -67,6 +69,7 @@ export default function ProductForm({ onCancel, onSuccess, onSave }: ProductForm
           label="Nombre del producto"
           placeholder="Introduce el nombre"
           schemaField={productFormSchema.shape.name}
+          defaultValue={product?.name}
         />
 
         {/* PRECIO */}
@@ -78,23 +81,22 @@ export default function ProductForm({ onCancel, onSuccess, onSave }: ProductForm
           step="0.01"
           startContent="$"
           schemaField={productFormSchema.shape.price}
+          defaultValue={product?.price?.toString()}
         />
 
         {/* CATEGORÍA */}
         <FormSelect
           name="categoryId"
           label="Categoría"
-          options={[
-            { value: "alimentos", label: "Alimentos" },
-            { value: "bebidas", label: "Bebidas" },
-            { value: "postres", label: "Postres" },
-          ]}
+          defaultValue={product?.categoryId}
+          options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
         />
 
         {/* UNIDADES */}
         <FormSelect
           name="units"
           label="Unidades"
+          defaultValue={product?.units}
           options={[
             { value: "pieza", label: "Pieza" },
             { value: "litros", label: "Litros" },
@@ -105,6 +107,7 @@ export default function ProductForm({ onCancel, onSuccess, onSave }: ProductForm
         <FormSelect
           name="modifiers"
           label="Modificadores"
+          defaultValue={product?.modifiers}
           options={[
             { value: "default", label: "Carne / Verdura / Salsa" },
             { value: "none", label: "Sin modificadores" },
@@ -120,7 +123,7 @@ export default function ProductForm({ onCancel, onSuccess, onSave }: ProductForm
         <div className="flex flex-col gap-1 justify-center">
           <FieldLabel className="mb-1">Disponibilidad</FieldLabel>
           <label className="relative inline-flex items-center cursor-pointer w-max">
-            <input type="checkbox" name="isAvailable" defaultChecked className="sr-only peer" />
+            <input type="checkbox" name="isAvailable" defaultChecked={product ? product.isAvailable : true} className="sr-only peer" />
             <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
           </label>
         </div>

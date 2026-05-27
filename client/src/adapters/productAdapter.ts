@@ -20,9 +20,11 @@ export const createProductCatalogAdapter = (apiResponse: ProductApiResponse): Pr
         id: String(prod.id),
         categoryId: String(prod.id_categoria), 
         name: prod.nombre,
+        price: prod.precio,
         units: prod.unidades,
         formattedPrice: priceFormatter.format(prod.precio), 
         description: prod.modificadores.join(', '), 
+        modifiers: prod.modificadores.join(', '), 
         isAvailable: prod.activo, 
         imageUrl: prod.imagen_url 
     }));

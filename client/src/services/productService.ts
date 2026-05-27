@@ -84,5 +84,46 @@ export const productService = {
             console.error('Service Error - deleteProduct:', error);
             throw error;
         }
+    },
+
+    updateProduct: async (productId: string, formData: ProductFormData): Promise<void> => {
+        try {
+            const apiPayload = createProductPayloadAdapter(formData);
+
+            const response = await fetch(`/api/products/${productId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(apiPayload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Detalle del error 422 (FastAPI):", JSON.stringify(errorData, null, 2));
+                const backendMsg = errorData.detail?.[0]?.msg || errorData.detail;
+                const fieldName = errorData.detail?.[0]?.loc?.[1]; 
+                throw new Error(`Error en el campo '${fieldName}': ${backendMsg}`);
+            }
+
+            if (formData.image) {
+                const imageFormData = new FormData();
+                const fileToUpload = formData.image instanceof FileList ? formData.image[0] : formData.image;
+                imageFormData.append('file', fileToUpload);
+
+                const imageResponse = await fetch(`/api/products/${productId}/imagen`, {
+                    method: 'POST',
+                    body: imageFormData
+                });
+
+                if (!imageResponse.ok) {
+                    console.warn(`Producto ${productId} actualizado, pero falló la subida de imagen.`);
+                    throw new Error('El producto fue actualizado, pero hubo un problema al subir la imagen');
+                }
+            }
+        } catch (error) {
+            console.error('Service Error - updateProduct:', error);
+            throw error;
+        }
     }
 };
