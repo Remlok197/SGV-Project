@@ -3,7 +3,7 @@ import React from 'react';
 export default function ProductCard({ 
   name, 
   price, 
-  description, 
+  modifiers, 
   imageUrl, 
   isAvailable = true,
   onOptionsClick 
@@ -40,7 +40,7 @@ export default function ProductCard({
         
     
         <p className="font-regular text-secundaryText text-xs md:text-sm pr-4 truncate">
-          {description}
+          modificadores
         </p>
 
         <div className="flex items-center gap-1.5 mt-auto">

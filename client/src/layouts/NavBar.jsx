@@ -1,5 +1,4 @@
 import NavButton from "../components/navBar/NavButton";
-import LogoIcon from "../components/header/LogoIcon";
 import OrdenesIcon from "../components/navBar/OrdenesIcon";
 import VentasIcon from "../components/navBar/VentasIcon";
 import ProductosIcon from "../components/navBar/ProductosIcon";
@@ -14,7 +13,7 @@ export default function NavBar(){
     ];
 
     return (
-        <nav className="grid grid-cols-4 place-items-center py-2 lg:py-1.5 shadow-[0_-4px_10px_rgba(0,0,0,0.07)]">
+        <nav className="mt-0.5 grid grid-cols-4 place-items-center py-2 lg:py-1.5 shadow-[0_-4px_10px_rgba(0,0,0,0.07)]">
             {navItems.map((item) => {
     
                 const Icono = item.icon;
