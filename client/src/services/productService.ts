@@ -67,5 +67,22 @@ export const productService = {
             console.error('Service Error - createProduct:', error);
             throw error;
         }
+    },
+
+    deleteProduct: async (productId: string): Promise<void> => {
+        try {
+            const response = await fetch(`/api/products/${productId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errMsg = errorData.detail || 'Error al eliminar el producto';
+                throw new Error(errMsg);
+            }
+        } catch (error) {
+            console.error('Service Error - deleteProduct:', error);
+            throw error;
+        }
     }
 };

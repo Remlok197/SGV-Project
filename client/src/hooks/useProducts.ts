@@ -40,11 +40,17 @@ export function useProducts() {
         await fetchCatalogData();
     };
 
+    const deleteProduct = async (productId: string) => {
+        await productService.deleteProduct(productId);
+        await fetchCatalogData();
+    };
+
     return {
         catalog,
         loading,
         error,
         addProduct, 
+        deleteProduct,
         refreshCatalog: fetchCatalogData
     };
 }
