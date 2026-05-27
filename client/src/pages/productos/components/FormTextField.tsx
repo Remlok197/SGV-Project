@@ -10,7 +10,8 @@ interface FormTextFieldProps {
   type?: string
   step?: string
   schemaField: ZodType
-  startContent?: React.ReactNode 
+  startContent?: React.ReactNode
+  defaultValue?: string
 }
 
 export function FormTextField({
@@ -21,6 +22,7 @@ export function FormTextField({
   step,
   schemaField,
   startContent,
+  defaultValue,
 }: FormTextFieldProps) {
   const [error, setError] = React.useState<string | null>(null)
   const [isFocused, setIsFocused] = React.useState(false)
@@ -71,6 +73,7 @@ export function FormTextField({
           onFocus={handleFocus}
           aria-invalid={!!error}
           required
+          defaultValue={defaultValue}
           className={`rounded-lg transition-all duration-200 ease-in-out
             border-borderInput text-terciaryText font-base  bg-backgroundInput
             

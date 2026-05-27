@@ -1,5 +1,5 @@
 import AddImageIcon from './AddImageIcon';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface FieldLabelProps {
   children: React.ReactNode;
@@ -12,9 +12,17 @@ const FieldLabel = ({ children, className = "" }: FieldLabelProps) => (
   </label>
 );
 
-export default function ImageUpload() {
+interface ImageUploadProps {
+  defaultImageUrl?: string | null;
+}
+
+export default function ImageUpload({ defaultImageUrl }: ImageUploadProps) {
   // 1. Explicitly type the state to accept a string or null
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(defaultImageUrl || null);
+
+  useEffect(() => {
+    setImagePreview(defaultImageUrl || null);
+  }, [defaultImageUrl]);
 
   // 2. Add the proper React event type for the input change
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

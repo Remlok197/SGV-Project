@@ -25,14 +25,13 @@ export type ProductFormData = z.infer<typeof productFormSchema>;
 
 export const productReadSchema = baseProductSchema
   .omit({ 
-    price: true,       
     modifiers: true 
   })
   .extend({
     id: z.string(),
     formattedPrice: z.string(),
     modifiers: z.string(), 
-    imageUrl: z.url().optional(),
+    imageUrl: z.string().optional(),
   });
 
 export type Product = z.infer<typeof productReadSchema>;

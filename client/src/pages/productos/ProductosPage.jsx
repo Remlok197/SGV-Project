@@ -10,13 +10,18 @@ import { useProducts } from "../../hooks/useProducts";
 export default function ProductosPage() {
     const [activeCategory, setActiveCategory] = useState("Todos"); 
     const [actionError, setActionError] = useState(null);
+    const [editingProduct, setEditingProduct] = useState(null);
     
-    const { catalog, loading, error, addProduct, deleteProduct } = useProducts(activeCategory); 
+    const { catalog, loading, error, addProduct, deleteProduct, updateProduct } = useProducts(activeCategory); 
     
     const [isPanelOpen, setIsPanelOpen] = useState(false); 
 
     const handleEditProduct = (productId) => {
-        console.log(`Abriendo panel para editar producto: ${productId}`);
+        const prod = catalog.products.find(p => p.id === productId);
+        if (prod) {
+            setEditingProduct(prod);
+            setIsPanelOpen(true);
+        }
     };
 
     const handleDeleteProduct = async (productId) => {
@@ -28,6 +33,14 @@ export default function ProductosPage() {
                 setActionError(err.message || "Error al eliminar el producto.");
                 setTimeout(() => setActionError(null), 5000);
             }
+        }
+    };
+
+    const handleSaveProduct = async (data) => {
+        if (editingProduct) {
+            await updateProduct(editingProduct.id, data);
+        } else {
+            await addProduct(data);
         }
     };
 
@@ -62,7 +75,10 @@ export default function ProductosPage() {
                     <ProductGrid>
                         <AddProductCard
                             text={"Añadir nuevo\nproducto"} 
-                            onClick={() => setIsPanelOpen(true)}
+                            onClick={() => {
+                                setEditingProduct(null);
+                                setIsPanelOpen(true);
+                            }}
                             className={`${isPanelOpen ? 'hidden' : ''}`}
                         />
 
@@ -89,8 +105,11 @@ export default function ProductosPage() {
                 <div className="flex flex-col h-full p-8">
                     <div className="flex-1 mt-6">
                     <ProductForm 
+                        key={editingProduct?.id || "new"}
+                        product={editingProduct}
+                        categories={catalog.categories}
                         onCancel={() => setIsPanelOpen(false)} 
-                        onSave={addProduct} 
+                        onSave={handleSaveProduct} 
                         onSuccess={() => setIsPanelOpen(false)} 
                     />
                 </div>
