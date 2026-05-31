@@ -1,5 +1,6 @@
 import os
 import shutil
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -18,7 +19,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="API Taquería Delgado", version="1.0")
+from . import seed
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    seed.run_all_seeders()
+    yield
+
+app = FastAPI(title="API Taquería Delgado", version="1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +43,10 @@ os.makedirs(IMAGENES_DIR, exist_ok=True)
 # Carpeta publica
 # Si buscas http://127.0.0.1:8000/imagenes/taco.jpg, FastAPI te devuelve la foto jeje
 app.mount("/imagenes", StaticFiles(directory=IMAGENES_DIR), name="imagenes")
+
+ICONOS_CATEGORIAS_DIR = "iconos_categorias"
+os.makedirs(ICONOS_CATEGORIAS_DIR, exist_ok=True)
+app.mount("/iconos", StaticFiles(directory=ICONOS_CATEGORIAS_DIR), name="iconos")
 
 # --- Config de seguridad ---
 SECRET_KEY = "SecurityQwertyz.."
@@ -119,6 +131,18 @@ def eliminar_categoria(categoria_id: int, db: Session = Depends(get_db)):
     db.delete(categoria_db)
     db.commit()
     return {"mensaje": "Categoría eliminada exitosamente"}
+@app.get("/api/iconos_categorias", response_model=List[str])
+def obtener_iconos_disponibles():
+    """Devuelve la lista de rutas públicas de los íconos .svg disponibles."""
+    if not os.path.exists(ICONOS_CATEGORIAS_DIR):
+        return []
+    
+    iconos = []
+    for archivo in os.listdir(ICONOS_CATEGORIAS_DIR):
+        if archivo.lower().endswith(".svg"):
+            iconos.append(f"/iconos/{archivo}")
+            
+    return iconos
 
 # RUTAS DE LOS PRODUCTOS BABYYYY
 # POST ENDPOINT (CREATE)
