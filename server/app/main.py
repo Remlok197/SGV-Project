@@ -129,6 +129,14 @@ def eliminar_categoria(categoria_id: int, db: Session = Depends(get_db)):
     if getattr(categoria_db, "es_sistema", False):
         raise HTTPException(status_code=403, detail="No se puede eliminar una categoría del sistema")
 
+    # Explicit check for associated products
+    productos_count = db.query(models.Producto).filter(models.Producto.id_categoria == categoria_id).count()
+    if productos_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar la categoría porque hay productos asociados a ella. Reasigna o elimina los productos primero."
+        )
+
     try:
         db.delete(categoria_db)
         db.commit()
@@ -136,7 +144,7 @@ def eliminar_categoria(categoria_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(
             status_code=400,
-            detail="No se puede eliminar la categoría porque hay productos asociados a ella. Reasigna o elimina los productos primero."
+            detail="No se puede eliminar la categoría por restricciones de integridad."
         )
 
     return {"mensaje": "Categoría eliminada exitosamente"}

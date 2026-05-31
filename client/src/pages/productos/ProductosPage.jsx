@@ -23,7 +23,7 @@ export default function ProductosPage() {
     // Category edit states
     const [isEditMode, setIsEditMode] = useState(false);
 
-    const { catalog, loading, error, addProduct, deleteProduct, updateProduct, addCategory, updateCategory } = useProducts(activeCategory); 
+    const { catalog, loading, error, addProduct, deleteProduct, updateProduct, addCategory, updateCategory, deleteCategory } = useProducts(activeCategory); 
     
     const [isPanelOpen, setIsPanelOpen] = useState(false); 
 
@@ -83,9 +83,16 @@ export default function ProductosPage() {
                                                         setTimeout(() => setActionError(null), 5000);
                                                     }
                                                 }}
-                                                onDelete={(categoryId) => {
-                                                    console.log("Eliminar categoría con ID:", categoryId);
-                                                    // Aquí irá el llamado de eliminación al back
+                                                onDelete={async (categoryId) => {
+                                                    try {
+                                                        await deleteCategory(categoryId);
+                                                        if (activeCategory === cat.name) {
+                                                            setActiveCategory("Todos");
+                                                        }
+                                                    } catch (err) {
+                                                        setActionError(err.message || "Error al eliminar la categoría.");
+                                                        setTimeout(() => setActionError(null), 5000);
+                                                    }
                                                 }}
                                             />
                                         ) : (

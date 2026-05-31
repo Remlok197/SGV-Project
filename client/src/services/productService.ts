@@ -61,6 +61,23 @@ export const productService = {
         }
     },
 
+    deleteCategory: async (categoryId: number): Promise<void> => {
+        try {
+            const response = await fetch(`/api/categorias/${categoryId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errMsg = errorData.detail || 'Error al eliminar la categoría';
+                throw new Error(errMsg);
+            }
+        } catch (error) {
+            console.error('Service Error - deleteCategory:', error);
+            throw error;
+        }
+    },
+
     createProduct: async (formData: ProductFormData): Promise<void> => {
         try {
             const apiPayload = createProductPayloadAdapter(formData);
