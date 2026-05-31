@@ -22,6 +22,7 @@ class Categoria(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     icono = Column(String, nullable=True)
+    es_sistema = Column(Boolean, default=False)
 
     productos = relationship("Producto", back_populates="categoria")
 

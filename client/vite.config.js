@@ -23,7 +23,8 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '^/api': 'http://127.0.0.1:8000',
-        '^/imagenes': 'http://127.0.0.1:8000'
+        '^/imagenes': 'http://127.0.0.1:8000',
+        '^/iconos': 'http://127.0.0.1:8000'
       },
     },
   }
