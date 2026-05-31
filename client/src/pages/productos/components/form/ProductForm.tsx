@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Button, Form } from "@heroui/react";
-import { productFormSchema, Product } from "../../../../schemas/productSchema"; 
+import { productFormSchema, Product } from "../../../../schemas/productSchema";
 import ImageUpload from "./ImageUpload";
 import { FormTextField } from "./FormTextField";
-import { FormSelect } from "./FormSelectField"; 
+import { FormSelect } from "./FormSelectField";
 import ModificadoresModal from "../modals/ModificadoresModal";
 import { FieldLabel } from "../../../../components/ui/field";
 
@@ -12,7 +12,7 @@ interface ProductFormProps {
   categories: { id: string; name: string }[];
   onCancel?: () => void;
   onSuccess?: () => void;
-  onSave: (data: any) => Promise<void>; 
+  onSave: (data: any) => Promise<void>;
 }
 
 export default function ProductForm({ product, categories, onCancel, onSuccess, onSave }: ProductFormProps) {
@@ -40,15 +40,15 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
 
     if (!finalValidation.success) {
       console.error("Errores en el formulario:", finalValidation.error.format());
-      return; 
+      return;
     }
 
     try {
       setIsSubmitting(true);
       const validData = finalValidation.data;
-      
+
       await onSave(validData);
-      
+
       if (onSuccess) onSuccess();
 
     } catch (error) {
@@ -62,7 +62,7 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
   return (
     <Form className="flex flex-col h-full w-full" onSubmit={onSubmit}>
       <div className="grid grid-cols-2 gap-x-4 gap-y-6 w-full">
-        
+
         <ImageUpload defaultImageUrl={product?.imageUrl} />
 
         {/* NOMBRE */}
@@ -115,8 +115,8 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
             { value: "none", label: "Sin modificadores" },
           ]}
           headerAction={
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setIsModalOpen(true)}
               className="text-xs text-gray-500 underline hover:text-gray-800"
             >
@@ -137,17 +137,17 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
       </div>
 
       <div className="mt-auto pt-8 flex gap-4 w-full">
-        <Button 
-          type="button" 
-          onPress={onCancel} 
+        <Button
+          type="button"
+          onPress={onCancel}
           isDisabled={isSubmitting}
           className="flex-1 h-12 bg-white border-2 border-orange-500 text-orange-500 rounded-lg font-bold hover:bg-orange-50 transition-colors"
         >
           CANCELAR
         </Button>
-        <Button 
-          type="submit" 
-          isDisabled={isSubmitting} 
+        <Button
+          type="submit"
+          isDisabled={isSubmitting}
           className="flex-1 h-12 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600 transition-colors disabled:opacity-70"
         >
           {isSubmitting ? 'GUARDANDO...' : 'GUARDAR'}
