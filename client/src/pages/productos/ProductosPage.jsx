@@ -1,27 +1,56 @@
-import React, { useState } from "react"; 
+import React, { useState, useRef } from "react"; 
 import PageHeader from "../../components/shared/PageHeader";
-import CategoryDivider from "./components/CategoryDivider";
-import AddProductCard from "./components/AddProductCard";
-import ProductCard from "./components/ProductCard";
-import ProductForm from "./components/ProductForm";
-import ProductGrid from "./components/ProductGrid";
+import CategoryDivider from "./components/category/CategoryDivider";
+import AddProductCard from "./components/cards/AddProductCard";
+import ProductCard from "./components/cards/ProductCard";
+import ProductForm from "./components/form/ProductForm";
+import ProductGrid from "./components/cards/ProductGrid";
 import { useProducts } from "../../hooks/useProducts";
-import TabGroup from "./components/TabGroup";
-import Tab from "./components/Tab";
+import TabGroup from "./components/tabs/TabGroup";
+import Tab from "./components/tabs/Tab";
 import { Edit2, Check } from "lucide-react";
 import { ReactSVG } from "react-svg";
-import CategoryActionButton from "./components/CategoryActionButton";
-import NewCategoryInput from "./components/NewCategoryInput";
-import EditableCategoryContent from "./components/EditableCategoryContent";
+import CategoryActionButton from "./components/category/CategoryActionButton";
+import NewCategoryInput from "./components/category/NewCategoryInput";
+import EditableCategoryContent from "./components/category/EditableCategoryContent";
 
 
 export default function ProductosPage() {
     const [activeCategory, setActiveCategory] = useState("Todos"); 
     const [actionError, setActionError] = useState(null);
     const [editingProduct, setEditingProduct] = useState(null);
+    const [formKey, setFormKey] = useState(Date.now());
     
     // Category edit states
     const [isEditMode, setIsEditMode] = useState(false);
+
+    // Drag to scroll states
+    const scrollContainerRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeft, setScrollLeft] = useState(0);
+
+    const handleMouseDown = (e) => {
+        setIsDragging(true);
+        setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+        setScrollLeft(scrollContainerRef.current.scrollLeft);
+    };
+
+    const handleMouseLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.pageX - scrollContainerRef.current.offsetLeft;
+        const walk = (x - startX) * 2; 
+        scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+    };
 
     const { catalog, loading, error, addProduct, deleteProduct, updateProduct, addCategory, updateCategory, deleteCategory } = useProducts(activeCategory); 
     
@@ -31,6 +60,7 @@ export default function ProductosPage() {
         const prod = catalog.products.find(p => p.id === productId);
         if (prod) {
             setEditingProduct(prod);
+            setFormKey(Date.now());
             setIsPanelOpen(true);
         }
     };
@@ -63,75 +93,116 @@ export default function ProductosPage() {
             <div className={`flex-1 h-full pb-12 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out ${isPanelOpen ? 'pr-100 lg:pr-130 ' : ''}`}>
                 <div className="flex flex-col gap-2 md:gap-2 lg:gap-3 pt-6 px-13 md:px-20 lg:px-22">
                     <PageHeader title={"Productos"}>
-                        <TabGroup selectedKey={isEditMode ? null : activeCategory} onSelectionChange={(k) => !isEditMode && setActiveCategory(k)}>
-                            {catalog.categories
-                                .filter(cat => !(isEditMode && cat.name === "Todos"))
-                                .map((cat) => (
-                                <Tab 
-                                    key={cat.id} 
-                                    id={cat.name} 
-                                    className={isEditMode ? "!bg-white !border-secundaryText/40 focus-within:!border-primary !text-primaryText !px-2 !cursor-text hover:!bg-white" : ""}
-                                    title={
-                                        isEditMode && cat.name !== "Todos" ? (
-                                            <EditableCategoryContent 
-                                                category={cat}
-                                                onSave={async (newData) => {
-                                                    try {
-                                                        await updateCategory(newData.id, { nombre: newData.nombre, icono: newData.icono });
-                                                    } catch (err) {
-                                                        setActionError(err.message || "Error al actualizar la categoría.");
-                                                        setTimeout(() => setActionError(null), 5000);
-                                                    }
-                                                }}
-                                                onDelete={async (categoryId) => {
-                                                    try {
-                                                        await deleteCategory(categoryId);
-                                                        if (activeCategory === cat.name) {
-                                                            setActiveCategory("Todos");
-                                                        }
-                                                    } catch (err) {
-                                                        setActionError(err.message || "Error al eliminar la categoría.");
-                                                        setTimeout(() => setActionError(null), 5000);
-                                                    }
-                                                }}
-                                            />
-                                        ) : (
-                                            cat.name
-                                        )
-                                    } 
-                                    icon={
-                                        isEditMode && cat.name !== "Todos" ? null : (
-                                            cat.icon ? (
-                                                <ReactSVG 
-                                                    src={cat.icon} 
-                                                    className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current" 
-                                                />
-                                            ) : null
-                                        )
-                                    } 
-                                />
-                            ))}
-                        </TabGroup>
-                        
-                        {isEditMode && (
-                            <NewCategoryInput 
-                                onConfirm={async (data) => {
-                                    try {
-                                        await addCategory(data);
-                                    } catch (err) {
-                                        setActionError(err.message || "Error al crear la categoría.");
-                                        setTimeout(() => setActionError(null), 5000);
-                                    }
-                                }} 
-                            />
+                        {!isEditMode && catalog.categories.find(c => c.name === "Todos") && (
+                            <button
+                                onClick={() => setActiveCategory("Todos")}
+                                className={`flex items-center w-fit flex-none gap-2 h-10 px-4 rounded-[10px] border font-medium text-sm transition-all duration-200 cursor-pointer select-none flex-shrink-0 ${
+                                    activeCategory === "Todos"
+                                        ? "border-primaryAction bg-transparent text-primaryAction"
+                                        : "border-[#E2E8F0] bg-transparent text-secundaryText hover:bg-gray-50 hover:text-primaryText"
+                                }`}
+                            >
+                                {catalog.categories.find(c => c.name === "Todos").icon && (
+                                    <span className="flex-shrink-0 size-[18px] flex items-center justify-center">
+                                        <ReactSVG 
+                                            src={catalog.categories.find(c => c.name === "Todos").icon} 
+                                            className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current" 
+                                        />
+                                    </span>
+                                )}
+                                <span>Todos</span>
+                            </button>
                         )}
 
-                        <CategoryActionButton 
-                            title={isEditMode ? "Terminar" : "Editar"} 
-                            icon={isEditMode ? <Check className="size-4" /> : <Edit2 className="size-4" />} 
-                            onClick={() => setIsEditMode(!isEditMode)} 
-                            isActive={isEditMode}
-                        />
+                        <div 
+                            ref={scrollContainerRef}
+                            onMouseDown={handleMouseDown}
+                            onMouseLeave={handleMouseLeave}
+                            onMouseUp={handleMouseUp}
+                            onMouseMove={handleMouseMove}
+                            className={`overflow-x-auto min-w-0 max-w-full flex px-2 -mx-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                        >
+                            <TabGroup selectedKey={isEditMode ? null : activeCategory} onSelectionChange={(k) => !isEditMode && setActiveCategory(k)}>
+                                {catalog.categories
+                                    .filter(cat => cat.name !== "Todos")
+                                    .map((cat) => (
+                                    <Tab 
+                                        key={cat.id} 
+                                        id={cat.name} 
+                                        className={isEditMode ? "!bg-white !border-secundaryText/40 focus-within:!border-primary !text-secundaryText !px-2 !cursor-text hover:!bg-white" : ""}
+                                        title={
+                                            isEditMode ? (
+                                                <EditableCategoryContent 
+                                                    category={cat}
+                                                    onSave={async (newData) => {
+                                                        try {
+                                                            await updateCategory(newData.id, { nombre: newData.nombre, icono: newData.icono });
+                                                        } catch (err) {
+                                                            setActionError(err.message || "Error al actualizar la categoría.");
+                                                            setTimeout(() => setActionError(null), 5000);
+                                                        }
+                                                    }}
+                                                    onDelete={async (categoryId) => {
+                                                        try {
+                                                            await deleteCategory(categoryId);
+                                                            if (activeCategory === cat.name) {
+                                                                setActiveCategory("Todos");
+                                                            }
+                                                        } catch (err) {
+                                                            setActionError(err.message || "Error al eliminar la categoría.");
+                                                            setTimeout(() => setActionError(null), 5000);
+                                                        }
+                                                    }}
+                                                />
+                                            ) : (
+                                                cat.name
+                                            )
+                                        } 
+                                        icon={
+                                            isEditMode ? null : (
+                                                cat.icon ? (
+                                                    <ReactSVG 
+                                                        src={cat.icon} 
+                                                        className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current" 
+                                                    />
+                                                ) : null
+                                            )
+                                        } 
+                                    />
+                                ))}
+                            </TabGroup>
+                        </div>
+                        
+                        {isEditMode ? (
+                            <>
+                                <NewCategoryInput 
+                                    className="flex-shrink-0"
+                                    onConfirm={async (data) => {
+                                        try {
+                                            await addCategory(data);
+                                        } catch (err) {
+                                            setActionError(err.message || "Error al crear la categoría.");
+                                            setTimeout(() => setActionError(null), 5000);
+                                        }
+                                    }} 
+                                />
+                                <CategoryActionButton 
+                                    title="Terminar" 
+                                    icon={<Check className="size-4" />} 
+                                    onClick={() => setIsEditMode(false)} 
+                                    isActive={true}
+                                    className="flex-shrink-0"
+                                />
+                            </>
+                        ) : (
+                            <CategoryActionButton 
+                                title="Editar" 
+                                icon={<Edit2 className="size-4" />} 
+                                onClick={() => setIsEditMode(true)} 
+                                isActive={false}
+                                className="flex-shrink-0"
+                            />
+                        )}
                     </PageHeader>
                     
                     {actionError && (
@@ -158,6 +229,7 @@ export default function ProductosPage() {
                             text={"Añadir nuevo\nproducto"} 
                             onClick={() => {
                                 setEditingProduct(null);
+                                setFormKey(Date.now());
                                 setIsPanelOpen(true);
                             }}
                             className={`${isPanelOpen ? 'hidden' : ''}`}
@@ -192,7 +264,7 @@ export default function ProductosPage() {
                 <div className="flex flex-col h-full p-8">
                     <div className="flex-1 mt-6">
                     <ProductForm 
-                        key={editingProduct?.id || "new"}
+                        key={formKey}
                         product={editingProduct}
                         categories={catalog.categories}
                         onCancel={() => setIsPanelOpen(false)} 

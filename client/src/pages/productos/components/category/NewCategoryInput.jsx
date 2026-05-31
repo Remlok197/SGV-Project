@@ -4,7 +4,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
 import { ReactSVG } from "react-svg";
 import CategoryActionButton from "./CategoryActionButton";
 
-export default function NewCategoryInput({ onConfirm }) {
+export default function NewCategoryInput({ onConfirm, className = "" }) {
     const [isInputVisible, setIsInputVisible] = useState(false);
     const [inputValue, setInputValue] = useState("");
     const [selectedIcon, setSelectedIcon] = useState("");
@@ -25,7 +25,6 @@ export default function NewCategoryInput({ onConfirm }) {
                 .then((data) => {
                     setIcons(data);
                     if (data.length > 0) {
-                        // Intentar poner uno de comida por defecto si existe, o el primero
                         const defaultIcon = data.find(i => i.includes("pizza")) || data[0];
                         setSelectedIcon(defaultIcon);
                     }
@@ -42,7 +41,6 @@ export default function NewCategoryInput({ onConfirm }) {
 
     const handleConfirm = () => {
         if (inputValue.trim()) {
-            // Mandamos un objeto para que luego el padre tenga el icono
             onConfirm({ nombre: inputValue.trim(), icono: selectedIcon });
         }
         setIsInputVisible(false);
@@ -51,7 +49,7 @@ export default function NewCategoryInput({ onConfirm }) {
 
     if (isInputVisible) {
         return (
-            <div className="h-9 pl-2 pr-4 rounded-xl border bg-white border-primary text-primaryText flex items-center shadow-sm w-60 transition-all duration-200">
+            <div className={`h-10 pl-2 pr-4 rounded-[10px] border bg-white border-primaryAction text-primaryText flex items-center shadow-sm w-60 transition-all duration-200 ${className}`}>
                 <Popover isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen} placement="bottom-start">
                     <PopoverTrigger>
                         <button 
@@ -59,9 +57,9 @@ export default function NewCategoryInput({ onConfirm }) {
                             className="h-6 w-6 rounded-md hover:bg-secundary/20 flex items-center justify-center mr-2 flex-shrink-0 transition-colors"
                         >
                             {selectedIcon ? (
-                                <ReactSVG src={selectedIcon} className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current text-primary" />
+                                <ReactSVG src={selectedIcon} className="size-[18px] flex items-center justify-center [&_svg]:size-[18px] [&_svg]:fill-current text-primaryAction" />
                             ) : (
-                                <Plus className="size-4 text-primary" />
+                                <Plus className="size-[18px] text-primaryAction" />
                             )}
                         </button>
                     </PopoverTrigger>
@@ -77,7 +75,7 @@ export default function NewCategoryInput({ onConfirm }) {
                                     }}
                                     className={`p-2 rounded-lg flex items-center justify-center transition-colors ${
                                         selectedIcon === iconPath 
-                                            ? 'bg-primary/20 text-primary' 
+                                            ? 'bg-primaryAction/20 text-primaryAction' 
                                             : 'hover:bg-secundary/20 text-secundaryText'
                                     }`}
                                 >
@@ -122,8 +120,9 @@ export default function NewCategoryInput({ onConfirm }) {
     return (
         <CategoryActionButton 
             title="Nueva Categoría" 
-            icon={<Plus className="size-4" />} 
-            onClick={() => setIsInputVisible(true)} 
+            icon={<Plus className="size-[18px]" />} 
+            onClick={() => setIsInputVisible(true)}
+            className={className}
         />
     );
 }

@@ -169,6 +169,11 @@ def obtener_iconos_disponibles():
 
 @app.post("/api/products", response_model=schemas.ProductoResponse)
 def crear_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
+    if producto.id_categoria:
+        categoria_db = db.query(models.Categoria).filter(models.Categoria.id == producto.id_categoria).first()
+        if getattr(categoria_db, "es_sistema", False):
+            raise HTTPException(status_code=400, detail="No se pueden agregar productos a una categoría del sistema")
+
     nuevo_producto = models.Producto(
         **producto.model_dump(exclude={'ids_modificadores'}))
 
@@ -242,6 +247,11 @@ def editar_producto(producto_id: int, producto: schemas.ProductoUpdate, db: Sess
     producto_db = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
     if not producto_db:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    if producto.id_categoria:
+        categoria_db = db.query(models.Categoria).filter(models.Categoria.id == producto.id_categoria).first()
+        if getattr(categoria_db, "es_sistema", False):
+            raise HTTPException(status_code=400, detail="No se pueden asignar productos a una categoría del sistema")
 
     # Update basic fields if provided
     update_data = producto.model_dump(exclude_unset=True, exclude={'ids_modificadores'})

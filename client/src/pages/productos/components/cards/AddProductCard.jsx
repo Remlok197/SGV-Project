@@ -1,4 +1,4 @@
-import AddIcon from "./AddIcon";
+import AddIcon from "../icons/AddIcon";
 
 export default function AddProductCard({ onClick, text = "Añadir nuevo producto", className = "" }) {
   return (
