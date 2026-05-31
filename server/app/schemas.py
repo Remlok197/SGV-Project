@@ -13,6 +13,11 @@ class OpcionBase(BaseModel):
 class OpcionCreate(OpcionBase):
     pass
 
+class OpcionUpdate(BaseModel):
+    nombre: Optional[str] = None
+    precio_extra: Optional[float] = None
+    disponible: Optional[bool] = None
+
 
 class OpcionResponse(OpcionBase):
     id: int
@@ -40,6 +45,13 @@ class GrupoModificadorResponse(GrupoModificadorBase):
     class Config:
         from_attributes = True
 
+
+class GrupoModificadorUpdate(BaseModel):
+    nombre: Optional[str] = None
+    minimo: Optional[int] = None
+    maximo: Optional[int] = None
+
+
 # --- CATEGORÍAS ---
 
 
@@ -62,6 +74,7 @@ class CategoriaResponse(CategoriaBase):
 
     class Config:
         from_attributes = True
+
 
 # --- PRODUCTOS ---
 

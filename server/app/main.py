@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
+from sqlalchemy.exc import IntegrityError
 
 import jwt
 import bcrypt
@@ -296,7 +297,7 @@ def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
 # POST (CREATE)
 
 
-@app.post("/modificadores/", response_model=schemas.GrupoModificadorResponse)
+@app.post("/api/modificadores/", response_model=schemas.GrupoModificadorResponse)
 def crear_grupo_modificador(grupo: schemas.GrupoModificadorCreate, db: Session = Depends(get_db)):
 
     nuevo_grupo = models.GrupoModificador(
@@ -325,25 +326,79 @@ def crear_grupo_modificador(grupo: schemas.GrupoModificadorCreate, db: Session =
 # GET (READ)
 
 
-@app.get("/modificadores/", response_model=List[schemas.GrupoModificadorResponse])
+@app.get("/api/modificadores/", response_model=List[schemas.GrupoModificadorResponse])
 def obtener_grupos_modificadores(db: Session = Depends(get_db)):
     return db.query(models.GrupoModificador).all()
 
-# DELETE
-
-
-@app.delete("/modificadores/{modificador_id}")
-def eliminar_modificador(modificador_id: int, db: Session = Depends(get_db)):
-    modificador_db = db.query(models.Modificador).filter(
-        models.Modificador.id == modificador_id).first()
-
+# PUT (UPDATE)
+@app.put("/api/modificadores/{modificador_id}", response_model=schemas.GrupoModificadorResponse)
+def editar_modificador(modificador_id: int, modificador: schemas.GrupoModificadorUpdate, db: Session = Depends(get_db)):
+    modificador_db = db.query(models.GrupoModificador).filter(models.GrupoModificador.id == modificador_id).first()
     if not modificador_db:
-        raise HTTPException(
-            status_code=404, detail="Modificador no encontrado")
+        raise HTTPException(status_code=404, detail="Modificador no encontrado")
 
-    db.delete(modificador_db)
+    update_data = modificador.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(modificador_db, key, value)
+
     db.commit()
-    return {"mensaje": "Modificador eliminado correctamente"}
+    db.refresh(modificador_db)
+    return modificador_db
+
+# DELETE
+@app.delete("/api/modificadores/{modificador_id}")
+def eliminar_modificador(modificador_id: int, db: Session = Depends(get_db)):
+    modificador_db = db.query(models.GrupoModificador).filter(models.GrupoModificador.id == modificador_id).first()
+    if not modificador_db:
+        raise HTTPException(status_code=404, detail="Modificador no encontrado")
+
+    try:
+        db.delete(modificador_db)
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar este grupo de modificadores porque está siendo utilizado por productos del catálogo."
+        )
+
+    return {"mensaje": "Modificador eliminado exitosamente"}
+
+
+#  UPDATE de opciones_modificador
+@app.put("/api/opciones/{opcion_id}", response_model=schemas.OpcionResponse)
+def editar_opcion(opcion_id: int, opcion: schemas.OpcionUpdate, db: Session = Depends(get_db)):
+    opcion_db = db.query(models.OpcionModificador).filter(models.OpcionModificador.id == opcion_id).first()
+    if not opcion_db:
+        raise HTTPException(status_code=404, detail="Opción no encontrada")
+
+    update_data = opcion.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(opcion_db, key, value)
+
+    db.commit()
+    db.refresh(opcion_db)
+    return opcion_db
+
+
+# DELETE de opciones_modificador
+@app.delete("/api/opciones/{opcion_id}")
+def eliminar_opcion(opcion_id: int, db: Session = Depends(get_db)):
+    opcion_db = db.query(models.OpcionModificador).filter(models.OpcionModificador.id == opcion_id).first()
+    if not opcion_db:
+        raise HTTPException(status_code=404, detail="Opción no encontrada")
+
+    detalles_vinculados = db.query(models.detalle_opcion).filter(models.detalle_opcion.c.id_opcion == opcion_id).first()
+    if detalles_vinculados:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar esta opción porque ya está registrada en tickets de venta."
+        )
+
+    db.delete(opcion_db)
+    db.commit()
+    return {"mensaje": "Opción eliminada exitosamente"}
+
 
 # RUTAS DE LOS USUARIOS Y AUTENTICACION BABYYY
 
