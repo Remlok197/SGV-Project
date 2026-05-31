@@ -12,6 +12,7 @@ interface FormTextFieldProps {
   schemaField: ZodType
   startContent?: React.ReactNode
   defaultValue?: string
+  labelClassName?: string
 }
 
 export function FormTextField({
@@ -23,6 +24,7 @@ export function FormTextField({
   schemaField,
   startContent,
   defaultValue,
+  labelClassName,
 }: FormTextFieldProps) {
   const [error, setError] = React.useState<string | null>(null)
   const [isFocused, setIsFocused] = React.useState(false)
@@ -49,7 +51,7 @@ export function FormTextField({
     > 
       <FieldLabel 
         htmlFor={name} 
-        className="text-md font-semibold text-foreground transition-colors duration-200 group-data-[invalid]:text-destructive"
+        className={`${labelClassName || "text-md font-semibold text-foreground"} transition-colors duration-200 group-data-[invalid]:text-destructive`}
       >
         {label}
         <span className="text-destructive ml-1.5 font-bold" aria-hidden="true">*</span>
