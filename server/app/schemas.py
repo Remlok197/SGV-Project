@@ -52,6 +52,11 @@ class CategoriaCreate(CategoriaBase):
     pass
 
 
+class CategoriaUpdate(BaseModel):
+    nombre: Optional[str] = None
+    icono: Optional[str] = None
+
+
 class CategoriaResponse(CategoriaBase):
     id: int
 

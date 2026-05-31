@@ -40,6 +40,27 @@ export const productService = {
         }
     },
 
+    updateCategory: async (categoryId: number, categoryData: { nombre?: string; icono?: string }): Promise<void> => {
+        try {
+            const response = await fetch(`/api/categorias/${categoryId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(categoryData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errMsg = errorData.detail || 'Error al actualizar la categoría';
+                throw new Error(errMsg);
+            }
+        } catch (error) {
+            console.error('Service Error - updateCategory:', error);
+            throw error;
+        }
+    },
+
     createProduct: async (formData: ProductFormData): Promise<void> => {
         try {
             const apiPayload = createProductPayloadAdapter(formData);

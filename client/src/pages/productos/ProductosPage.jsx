@@ -12,6 +12,7 @@ import { Edit2, Check } from "lucide-react";
 import { ReactSVG } from "react-svg";
 import CategoryActionButton from "./components/CategoryActionButton";
 import NewCategoryInput from "./components/NewCategoryInput";
+import EditableCategoryContent from "./components/EditableCategoryContent";
 
 
 export default function ProductosPage() {
@@ -22,7 +23,7 @@ export default function ProductosPage() {
     // Category edit states
     const [isEditMode, setIsEditMode] = useState(false);
 
-    const { catalog, loading, error, addProduct, deleteProduct, updateProduct, addCategory } = useProducts(activeCategory); 
+    const { catalog, loading, error, addProduct, deleteProduct, updateProduct, addCategory, updateCategory } = useProducts(activeCategory); 
     
     const [isPanelOpen, setIsPanelOpen] = useState(false); 
 
@@ -62,19 +63,44 @@ export default function ProductosPage() {
             <div className={`flex-1 h-full pb-12 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out ${isPanelOpen ? 'pr-100 lg:pr-130 ' : ''}`}>
                 <div className="flex flex-col gap-2 md:gap-2 lg:gap-3 pt-6 px-13 md:px-20 lg:px-22">
                     <PageHeader title={"Productos"}>
-                        <TabGroup selectedKey={activeCategory} onSelectionChange={setActiveCategory}>
-                            {catalog.categories.map((cat) => (
+                        <TabGroup selectedKey={isEditMode ? null : activeCategory} onSelectionChange={(k) => !isEditMode && setActiveCategory(k)}>
+                            {catalog.categories
+                                .filter(cat => !(isEditMode && cat.name === "Todos"))
+                                .map((cat) => (
                                 <Tab 
                                     key={cat.id} 
                                     id={cat.name} 
-                                    title={cat.name} 
-                                    icon={
-                                        cat.icon ? (
-                                            <ReactSVG 
-                                                src={cat.icon} 
-                                                className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current" 
+                                    className={isEditMode ? "!bg-white !border-secundaryText/40 focus-within:!border-primary !text-primaryText !px-2 !cursor-text hover:!bg-white" : ""}
+                                    title={
+                                        isEditMode && cat.name !== "Todos" ? (
+                                            <EditableCategoryContent 
+                                                category={cat}
+                                                onSave={async (newData) => {
+                                                    try {
+                                                        await updateCategory(newData.id, { nombre: newData.nombre, icono: newData.icono });
+                                                    } catch (err) {
+                                                        setActionError(err.message || "Error al actualizar la categoría.");
+                                                        setTimeout(() => setActionError(null), 5000);
+                                                    }
+                                                }}
+                                                onDelete={(categoryId) => {
+                                                    console.log("Eliminar categoría con ID:", categoryId);
+                                                    // Aquí irá el llamado de eliminación al back
+                                                }}
                                             />
-                                        ) : null
+                                        ) : (
+                                            cat.name
+                                        )
+                                    } 
+                                    icon={
+                                        isEditMode && cat.name !== "Todos" ? null : (
+                                            cat.icon ? (
+                                                <ReactSVG 
+                                                    src={cat.icon} 
+                                                    className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current" 
+                                                />
+                                            ) : null
+                                        )
                                     } 
                                 />
                             ))}

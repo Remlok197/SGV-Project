@@ -45,6 +45,11 @@ export function useProducts() {
         await fetchCatalogData();
     };
 
+    const updateCategory = async (categoryId: number, categoryData: { nombre?: string; icono?: string }) => {
+        await productService.updateCategory(categoryId, categoryData);
+        await fetchCatalogData();
+    };
+
     const deleteProduct = async (productId: string) => {
         await productService.deleteProduct(productId);
         await fetchCatalogData();
@@ -61,6 +66,7 @@ export function useProducts() {
         error,
         addProduct, 
         addCategory,
+        updateCategory,
         deleteProduct,
         updateProduct,
         refreshCatalog: fetchCatalogData
