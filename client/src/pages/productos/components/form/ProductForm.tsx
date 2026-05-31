@@ -4,6 +4,7 @@ import { productFormSchema, Product } from "../../../../schemas/productSchema";
 import ImageUpload from "./ImageUpload";
 import { FormTextField } from "./FormTextField";
 import { FormSelect } from "./FormSelectField"; 
+import ModificadoresModal from "../modals/ModificadoresModal";
 import { FieldLabel } from "../../../../components/ui/field";
 
 interface ProductFormProps {
@@ -16,6 +17,7 @@ interface ProductFormProps {
 
 export default function ProductForm({ product, categories, onCancel, onSuccess, onSave }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -113,7 +115,11 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
             { value: "none", label: "Sin modificadores" },
           ]}
           headerAction={
-            <button type="button" className="text-xs text-gray-500 underline hover:text-gray-800">
+            <button 
+              type="button" 
+              onClick={() => setIsModalOpen(true)}
+              className="text-xs text-gray-500 underline hover:text-gray-800"
+            >
               Editar
             </button>
           }
@@ -147,6 +153,8 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
           {isSubmitting ? 'GUARDANDO...' : 'GUARDAR'}
         </Button>
       </div>
+
+      <ModificadoresModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
     </Form>
   );
 }
