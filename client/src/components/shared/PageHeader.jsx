@@ -6,7 +6,7 @@ export default function PageHeader({ title, children }) {
       </h1>
       
       {children && (
-        <div className="flex">
+        <div className="flex gap-3">
           {children}
         </div>
       )}

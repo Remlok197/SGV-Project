@@ -5,15 +5,15 @@ export default function CategoryActionButton({ title, icon, onClick, isActive, c
         <button
             onClick={onClick}
             className={`
-                h-9 px-4 rounded-xl border transition-all duration-200 flex items-center gap-2 whitespace-nowrap outline-none focus:ring-2 focus:ring-primary/50
+                h-10 px-4 rounded-[10px] border font-medium text-sm transition-all duration-200 flex items-center gap-2 whitespace-nowrap outline-none cursor-pointer select-none
                 ${isActive
-                    ? "bg-primary/10 border-primary text-primary font-semibold"
-                    : "bg-white border-secundaryText/20 text-secundaryText hover:bg-secundary/20 hover:border-secundaryText/40"
+                    ? "bg-primaryAction border-primaryAction text-white"
+                    : "bg-[#F8FAFC] border-dashed border-[#CBD5E1] text-secundaryText hover:bg-gray-100 hover:text-primaryText"
                 }
                 ${className}
             `}
         >
-            {icon && <span className="flex-shrink-0 size-4 flex items-center justify-center">{icon}</span>}
+            {icon && <span className="flex-shrink-0 size-[18px] flex items-center justify-center">{icon}</span>}
             <span>{title}</span>
         </button>
     );
