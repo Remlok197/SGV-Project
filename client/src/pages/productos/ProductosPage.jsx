@@ -6,6 +6,11 @@ import ProductCard from "./components/ProductCard";
 import ProductForm from "./components/ProductForm";
 import ProductGrid from "./components/ProductGrid";
 import { useProducts } from "../../hooks/useProducts";
+import TabGroup from "./components/TabGroup";
+import Tab from "./components/Tab";
+import { Edit2 } from "lucide-react";
+import { ReactSVG } from "react-svg";
+
 
 export default function ProductosPage() {
     const [activeCategory, setActiveCategory] = useState("Todos"); 
@@ -51,7 +56,26 @@ export default function ProductosPage() {
         <div className="relative flex h-full w-full overflow-hidden">
             <div className={`flex-1 h-full pb-12 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out ${isPanelOpen ? 'pr-100 lg:pr-130 ' : ''}`}>
                 <div className="flex flex-col gap-2 md:gap-2 lg:gap-3 pt-6 px-13 md:px-20 lg:px-22">
-                    <PageHeader title={"Productos"} />
+                    <PageHeader title={"Productos"}>
+                        <TabGroup selectedKey={activeCategory} onSelectionChange={setActiveCategory}>
+                            {catalog.categories.map((cat) => (
+                                <Tab 
+                                    key={cat.id} 
+                                    id={cat.name} 
+                                    title={cat.name} 
+                                    icon={
+                                        cat.icon ? (
+                                            <ReactSVG 
+                                                src={cat.icon} 
+                                                className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current" 
+                                            />
+                                        ) : null
+                                    } 
+                                />
+                            ))}
+                            <Tab id="Editar" title="Editar" icon={<Edit2 className="size-4" />} isDisabled={true} />
+                        </TabGroup>
+                    </PageHeader>
                     
                     {actionError && (
                         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center justify-between text-sm">
@@ -82,7 +106,13 @@ export default function ProductosPage() {
                             className={`${isPanelOpen ? 'hidden' : ''}`}
                         />
 
-                        {catalog.products.map((product) => (
+                        {catalog.products
+                            .filter(product => {
+                                if (activeCategory === "Todos") return true;
+                                const activeCatId = catalog.categories.find(c => c.name === activeCategory)?.id;
+                                return product.categoryId === activeCatId;
+                            })
+                            .map((product) => (
                             <ProductCard 
                                 key={product.id}
                                 name={product.name}
