@@ -19,6 +19,27 @@ export const productService = {
         }
     },
 
+    createCategory: async (categoryData: { nombre: string; icono: string }): Promise<void> => {
+        try {
+            const response = await fetch('/api/categorias/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(categoryData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errMsg = errorData.detail || 'Error al crear la categoría';
+                throw new Error(errMsg);
+            }
+        } catch (error) {
+            console.error('Service Error - createCategory:', error);
+            throw error;
+        }
+    },
+
     createProduct: async (formData: ProductFormData): Promise<void> => {
         try {
             const apiPayload = createProductPayloadAdapter(formData);
