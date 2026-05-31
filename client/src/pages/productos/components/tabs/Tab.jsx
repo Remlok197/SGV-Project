@@ -14,7 +14,7 @@ export default function Tab({ id, title, icon, isDisabled, className, ...props }
       id={id}
       isDisabled={isDisabled}
       className={`
-        flex items-center gap-2 h-10 px-4 rounded-[10px] border font-medium text-sm transition-all duration-200 cursor-pointer select-none
+        flex items-center w-fit flex-none gap-2 h-10 px-4 rounded-[10px] border font-medium text-sm transition-all duration-200 cursor-pointer select-none
         
         /* Default / Unselected State */
         border-[#E2E8F0] bg-transparent text-secundaryText hover:bg-gray-50 hover:text-primaryText

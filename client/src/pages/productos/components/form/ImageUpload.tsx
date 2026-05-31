@@ -1,4 +1,4 @@
-import AddImageIcon from './AddImageIcon';
+import AddImageIcon from '../icons/AddImageIcon';
 import { useState, useEffect } from 'react';
 
 interface FieldLabelProps {

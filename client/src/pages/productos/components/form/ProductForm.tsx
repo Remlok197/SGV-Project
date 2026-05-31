@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Button, Form } from "@heroui/react";
-import { productFormSchema, Product } from "../../../schemas/productSchema"; 
+import { productFormSchema, Product } from "../../../../schemas/productSchema"; 
 import ImageUpload from "./ImageUpload";
 import { FormTextField } from "./FormTextField";
 import { FormSelect } from "./FormSelectField"; 
-import { FieldLabel } from "../../../components/ui/field";
+import { FieldLabel } from "../../../../components/ui/field";
 
 interface ProductFormProps {
   product?: Product | null;
@@ -89,7 +89,7 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
           name="categoryId"
           label="Categoría"
           defaultValue={product?.categoryId}
-          options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+          options={categories.filter(cat => cat.name !== "Todos").map(cat => ({ value: cat.id, label: cat.name }))}
         />
 
         {/* UNIDADES */}

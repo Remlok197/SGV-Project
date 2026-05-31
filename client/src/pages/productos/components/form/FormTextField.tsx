@@ -1,7 +1,7 @@
 import * as React from "react"
 import { ZodType } from "zod"
-import { Field, FieldLabel } from "../../../components/ui/field"
-import { Input } from "../../../components/ui/input"
+import { Field, FieldLabel } from "../../../../components/ui/field"
+import { Input } from "../../../../components/ui/input"
 
 interface FormTextFieldProps {
   name: string
@@ -72,7 +72,6 @@ export function FormTextField({
           onBlur={handleBlur}
           onFocus={handleFocus}
           aria-invalid={!!error}
-          required
           defaultValue={defaultValue}
           className={`rounded-lg transition-all duration-200 ease-in-out
             border-borderInput text-terciaryText font-base  bg-backgroundInput

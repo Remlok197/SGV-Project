@@ -45,7 +45,7 @@ export default function EditableCategoryContent({ category, onSave, onDelete }) 
                         className="h-6 w-6 rounded-md hover:bg-secundary/20 flex items-center justify-center mr-1 flex-shrink-0 transition-colors"
                     >
                         {selectedIcon ? (
-                            <ReactSVG src={selectedIcon} className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current text-primary" />
+                            <ReactSVG src={selectedIcon} className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current text-secundaryText" />
                         ) : (
                             <span className="w-4 h-4 bg-gray-200 rounded-full" />
                         )}
@@ -93,7 +93,7 @@ export default function EditableCategoryContent({ category, onSave, onDelete }) 
                         inputRef.current?.blur();
                     }
                 }}
-                className="bg-transparent outline-none w-20 md:w-28 text-sm font-semibold text-primaryText"
+                className="bg-transparent outline-none w-16 md:w-20 text-sm font-semibold text-secundaryText"
                 placeholder="Nombre..."
             />
             
