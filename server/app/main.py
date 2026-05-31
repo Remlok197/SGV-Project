@@ -98,6 +98,58 @@ def crear_categoria(categoria: schemas.CategoriaCreate, db: Session = Depends(ge
 def obtener_categorias(db: Session = Depends(get_db)):
     return db.query(models.Categoria).all()
 
+
+@app.put("/api/categorias/{categoria_id}", response_model=schemas.CategoriaResponse)
+def editar_categoria(categoria_id: int, categoria: schemas.CategoriaUpdate, db: Session = Depends(get_db)):
+    categoria_db = db.query(models.Categoria).filter(models.Categoria.id == categoria_id).first()
+    
+    if not categoria_db:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+        
+    if getattr(categoria_db, "es_sistema", False):
+        raise HTTPException(status_code=403, detail="No se puede editar una categoría del sistema")
+
+    if categoria.nombre is not None:
+        categoria_db.nombre = categoria.nombre
+    if categoria.icono is not None:
+        categoria_db.icono = categoria.icono
+
+    db.commit()
+    db.refresh(categoria_db)
+    return categoria_db
+
+
+@app.delete("/api/categorias/{categoria_id}")
+def eliminar_categoria(categoria_id: int, db: Session = Depends(get_db)):
+    categoria_db = db.query(models.Categoria).filter(models.Categoria.id == categoria_id).first()
+    
+    if not categoria_db:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+        
+    if getattr(categoria_db, "es_sistema", False):
+        raise HTTPException(status_code=403, detail="No se puede eliminar una categoría del sistema")
+
+    # Explicit check for associated products
+    productos_count = db.query(models.Producto).filter(models.Producto.id_categoria == categoria_id).count()
+    if productos_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar la categoría porque hay productos asociados a ella. Reasigna o elimina los productos primero."
+        )
+
+    try:
+        db.delete(categoria_db)
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar la categoría por restricciones de integridad."
+        )
+
+    return {"mensaje": "Categoría eliminada exitosamente"}
+
+
 @app.get("/api/iconos_categorias", response_model=List[str])
 def obtener_iconos_disponibles():
     """Devuelve la lista de rutas públicas de los íconos .svg disponibles."""

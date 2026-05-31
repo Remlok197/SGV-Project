@@ -40,6 +40,21 @@ export function useProducts() {
         await fetchCatalogData();
     };
 
+    const addCategory = async (categoryData: { nombre: string; icono: string }) => {
+        await productService.createCategory(categoryData);
+        await fetchCatalogData();
+    };
+
+    const updateCategory = async (categoryId: number, categoryData: { nombre?: string; icono?: string }) => {
+        await productService.updateCategory(categoryId, categoryData);
+        await fetchCatalogData();
+    };
+
+    const deleteCategory = async (categoryId: number) => {
+        await productService.deleteCategory(categoryId);
+        await fetchCatalogData();
+    };
+
     const deleteProduct = async (productId: string) => {
         await productService.deleteProduct(productId);
         await fetchCatalogData();
@@ -55,6 +70,9 @@ export function useProducts() {
         loading,
         error,
         addProduct, 
+        addCategory,
+        updateCategory,
+        deleteCategory,
         deleteProduct,
         updateProduct,
         refreshCatalog: fetchCatalogData

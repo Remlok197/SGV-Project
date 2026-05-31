@@ -19,6 +19,65 @@ export const productService = {
         }
     },
 
+    createCategory: async (categoryData: { nombre: string; icono: string }): Promise<void> => {
+        try {
+            const response = await fetch('/api/categorias/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(categoryData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errMsg = errorData.detail || 'Error al crear la categoría';
+                throw new Error(errMsg);
+            }
+        } catch (error) {
+            console.error('Service Error - createCategory:', error);
+            throw error;
+        }
+    },
+
+    updateCategory: async (categoryId: number, categoryData: { nombre?: string; icono?: string }): Promise<void> => {
+        try {
+            const response = await fetch(`/api/categorias/${categoryId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(categoryData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errMsg = errorData.detail || 'Error al actualizar la categoría';
+                throw new Error(errMsg);
+            }
+        } catch (error) {
+            console.error('Service Error - updateCategory:', error);
+            throw error;
+        }
+    },
+
+    deleteCategory: async (categoryId: number): Promise<void> => {
+        try {
+            const response = await fetch(`/api/categorias/${categoryId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errMsg = errorData.detail || 'Error al eliminar la categoría';
+                throw new Error(errMsg);
+            }
+        } catch (error) {
+            console.error('Service Error - deleteCategory:', error);
+            throw error;
+        }
+    },
+
     createProduct: async (formData: ProductFormData): Promise<void> => {
         try {
             const apiPayload = createProductPayloadAdapter(formData);

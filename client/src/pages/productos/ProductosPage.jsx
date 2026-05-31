@@ -8,8 +8,11 @@ import ProductGrid from "./components/ProductGrid";
 import { useProducts } from "../../hooks/useProducts";
 import TabGroup from "./components/TabGroup";
 import Tab from "./components/Tab";
-import { Edit2 } from "lucide-react";
+import { Edit2, Check } from "lucide-react";
 import { ReactSVG } from "react-svg";
+import CategoryActionButton from "./components/CategoryActionButton";
+import NewCategoryInput from "./components/NewCategoryInput";
+import EditableCategoryContent from "./components/EditableCategoryContent";
 
 
 export default function ProductosPage() {
@@ -17,7 +20,10 @@ export default function ProductosPage() {
     const [actionError, setActionError] = useState(null);
     const [editingProduct, setEditingProduct] = useState(null);
     
-    const { catalog, loading, error, addProduct, deleteProduct, updateProduct } = useProducts(activeCategory); 
+    // Category edit states
+    const [isEditMode, setIsEditMode] = useState(false);
+
+    const { catalog, loading, error, addProduct, deleteProduct, updateProduct, addCategory, updateCategory, deleteCategory } = useProducts(activeCategory); 
     
     const [isPanelOpen, setIsPanelOpen] = useState(false); 
 
@@ -57,24 +63,75 @@ export default function ProductosPage() {
             <div className={`flex-1 h-full pb-12 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out ${isPanelOpen ? 'pr-100 lg:pr-130 ' : ''}`}>
                 <div className="flex flex-col gap-2 md:gap-2 lg:gap-3 pt-6 px-13 md:px-20 lg:px-22">
                     <PageHeader title={"Productos"}>
-                        <TabGroup selectedKey={activeCategory} onSelectionChange={setActiveCategory}>
-                            {catalog.categories.map((cat) => (
+                        <TabGroup selectedKey={isEditMode ? null : activeCategory} onSelectionChange={(k) => !isEditMode && setActiveCategory(k)}>
+                            {catalog.categories
+                                .filter(cat => !(isEditMode && cat.name === "Todos"))
+                                .map((cat) => (
                                 <Tab 
                                     key={cat.id} 
                                     id={cat.name} 
-                                    title={cat.name} 
-                                    icon={
-                                        cat.icon ? (
-                                            <ReactSVG 
-                                                src={cat.icon} 
-                                                className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current" 
+                                    className={isEditMode ? "!bg-white !border-secundaryText/40 focus-within:!border-primary !text-primaryText !px-2 !cursor-text hover:!bg-white" : ""}
+                                    title={
+                                        isEditMode && cat.name !== "Todos" ? (
+                                            <EditableCategoryContent 
+                                                category={cat}
+                                                onSave={async (newData) => {
+                                                    try {
+                                                        await updateCategory(newData.id, { nombre: newData.nombre, icono: newData.icono });
+                                                    } catch (err) {
+                                                        setActionError(err.message || "Error al actualizar la categoría.");
+                                                        setTimeout(() => setActionError(null), 5000);
+                                                    }
+                                                }}
+                                                onDelete={async (categoryId) => {
+                                                    try {
+                                                        await deleteCategory(categoryId);
+                                                        if (activeCategory === cat.name) {
+                                                            setActiveCategory("Todos");
+                                                        }
+                                                    } catch (err) {
+                                                        setActionError(err.message || "Error al eliminar la categoría.");
+                                                        setTimeout(() => setActionError(null), 5000);
+                                                    }
+                                                }}
                                             />
-                                        ) : null
+                                        ) : (
+                                            cat.name
+                                        )
+                                    } 
+                                    icon={
+                                        isEditMode && cat.name !== "Todos" ? null : (
+                                            cat.icon ? (
+                                                <ReactSVG 
+                                                    src={cat.icon} 
+                                                    className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current" 
+                                                />
+                                            ) : null
+                                        )
                                     } 
                                 />
                             ))}
-                            <Tab id="Editar" title="Editar" icon={<Edit2 className="size-4" />} isDisabled={true} />
                         </TabGroup>
+                        
+                        {isEditMode && (
+                            <NewCategoryInput 
+                                onConfirm={async (data) => {
+                                    try {
+                                        await addCategory(data);
+                                    } catch (err) {
+                                        setActionError(err.message || "Error al crear la categoría.");
+                                        setTimeout(() => setActionError(null), 5000);
+                                    }
+                                }} 
+                            />
+                        )}
+
+                        <CategoryActionButton 
+                            title={isEditMode ? "Terminar" : "Editar"} 
+                            icon={isEditMode ? <Check className="size-4" /> : <Edit2 className="size-4" />} 
+                            onClick={() => setIsEditMode(!isEditMode)} 
+                            isActive={isEditMode}
+                        />
                     </PageHeader>
                     
                     {actionError && (

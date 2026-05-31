@@ -14,31 +14,29 @@ export default function Tab({ id, title, icon, isDisabled, className, ...props }
       id={id}
       isDisabled={isDisabled}
       className={`
-        flex items-center gap-2 h-10 px-4 rounded-xl border font-semibold text-sm transition-all duration-200 cursor-pointer select-none
+        flex items-center gap-2 h-10 px-4 rounded-[10px] border font-medium text-sm transition-all duration-200 cursor-pointer select-none
         
         /* Default / Unselected State */
-        border-borderInput bg-white text-secundaryText hover:bg-gray-50 hover:text-primaryText
+        border-[#E2E8F0] bg-transparent text-secundaryText hover:bg-gray-50 hover:text-primaryText
         
         /* Selected State */
         data-[selected=true]:border-primaryAction
-        data-[selected=true]:bg-[#EE791C]/10
+        data-[selected=true]:bg-transparent
         data-[selected=true]:text-primaryAction
-        data-[selected=true]:font-bold
         
         /* Disabled State */
         data-[disabled=true]:border-dashed
-        data-[disabled=true]:border-borderInput/60
-        data-[disabled=true]:bg-transparent
-        data-[disabled=true]:text-secundaryText/40
+        data-[disabled=true]:border-[#CBD5E1]
+        data-[disabled=true]:bg-[#F8FAFC]
+        data-[disabled=true]:text-secundaryText
         data-[disabled=true]:cursor-not-allowed
         data-[disabled=true]:pointer-events-none
-        data-[disabled=true]:opacity-60
         
         ${className || ""}
       `}
       {...props}
     >
-      {icon && <span className="flex-shrink-0 size-4 flex items-center justify-center">{icon}</span>}
+      {icon && <span className="flex-shrink-0 size-[18px] flex items-center justify-center">{icon}</span>}
       <span>{title}</span>
     </Tabs.Tab>
   );
