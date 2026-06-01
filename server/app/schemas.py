@@ -12,7 +12,8 @@ class OpcionBase(BaseModel):
 
 
 class OpcionCreate(OpcionBase):
-    pass
+    nombre: str
+    precio_extra: float = 0.0
 
 class OpcionUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -47,6 +48,9 @@ class GrupoModificadorBase(BaseModel):
 
 
 class GrupoModificadorCreate(GrupoModificadorBase):
+    nombre: str
+    minimo: int = 0
+    maximo: Optional[int] = None
     opciones: List[OpcionCreate] = []
 
 

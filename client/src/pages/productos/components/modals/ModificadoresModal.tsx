@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal } from "@heroui/react";
 import { GripVertical, Edit2, Trash2, Plus, X } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -52,39 +52,36 @@ function SortableModificadorItem({ mod }: { mod: any }) {
 }
 
 export default function ModificadoresModal({ isOpen, onOpenChange }: ModificadoresModalProps) {
-  // Datos estáticos basados en el mockup
-  const [modificadores, setModificadores] = useState([
-    {
-      id: 1,
-      name: "Carne",
-      options: "Bistec, Chorizo, Pastor, Costilla, Tripa",
-      rules: "Mín 1 / Max 2",
-      category: "Alimentos"
-    },
-    {
-      id: 2,
-      name: "Salsa",
-      options: "Roja, Verde",
-      rules: "Opcional / Sin límite",
-      category: "Alimentos"
-    },
-    {
-      id: 3,
-      name: "Verdura",
-      options: "Cilantro, Cebolla",
-      rules: "Opcional / Sin límite",
-      category: "Alimentos"
-    },
-    {
-      id: 4,
-      name: "Tortilla",
-      options: "Maíz, Harina",
-      rules: "Mín 1 / Max 1",
-      category: "Alimentos"
-    }
-  ]);
-
+  const [modificadores, setModificadores] = useState<any[]>([]);
   const [isNuevoModalOpen, setIsNuevoModalOpen] = useState(false);
+
+  // 1. Efecto para cargar los datos cuando se abre el modal
+  useEffect(() => {
+    if (isOpen) {
+      fetchModificadores();
+    }
+  }, [isOpen]);
+
+  const fetchModificadores = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/modificadores");
+      const data = await res.json();
+      
+      // Traducimos el JSON del backend al formato visual de Fabian
+      const mappedData = data.map((mod: any) => ({
+        id: mod.id,
+        name: mod.nombre,
+        options: mod.opciones.map((o: any) => o.nombre).join(", ") || "Sin opciones",
+        rules: mod.maximo ? `Mín ${mod.minimo} / Max ${mod.maximo}` : (mod.minimo === 0 ? "Opcional / Sin límite" : `Mín ${mod.minimo} / Sin límite`),
+        category: "Personalizado" // El backend no tiene categoría para modificadores, lo dejamos genérico
+      }));
+      
+      setModificadores(mappedData);
+    } catch (error) {
+      console.error("Error cargando modificadores:", error);
+    }
+  };
+
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -104,16 +101,21 @@ export default function ModificadoresModal({ isOpen, onOpenChange }: Modificador
     }
   };
 
-  const handleSaveNuevoModificador = (data: any) => {
-    // Add to modificadores list locally (or call API in the future)
-    const newMod = {
-      id: Date.now(),
-      name: data.nombre,
-      options: data.opciones.map((o: any) => o.nombre).join(", ") || "Sin opciones",
-      rules: data.maximo ? `Mín ${data.minimo} / Max ${data.maximo}` : (data.minimo === 0 ? "Opcional / Sin límite" : `Mín ${data.minimo} / Sin límite`),
-      category: "Personalizado"
-    };
-    setModificadores([...modificadores, newMod]);
+  const handleSaveNuevoModificador = async (data: any) => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/modificadores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      
+      if (res.ok) {
+        // Si se guardó bien en la BD, recargamos la lista
+        fetchModificadores();
+      }
+    } catch (error) {
+      console.error("Error guardando el modificador:", error);
+    }
   };
 
   return (
