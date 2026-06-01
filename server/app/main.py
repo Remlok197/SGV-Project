@@ -5,7 +5,7 @@ from fastapi import FastAPI, Depends, HTTPException, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from typing import List
+from typing import List, Optional
 from sqlalchemy.exc import IntegrityError
 
 import jwt
@@ -176,7 +176,8 @@ def crear_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_d
             raise HTTPException(status_code=400, detail="No se pueden agregar productos a una categoría del sistema")
 
     nuevo_producto = models.Producto(
-        **producto.model_dump(exclude={'ids_modificadores'}))
+        **producto.model_dump(exclude={'ids_modificadores'})
+    )
 
     if producto.ids_modificadores:
         modificadores_db = db.query(models.GrupoModificador).filter(
@@ -188,9 +189,7 @@ def crear_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_d
     db.commit()
     db.refresh(nuevo_producto)
 
-    respuesta = schemas.ProductoResponse.model_validate(nuevo_producto)
-    respuesta.modificadores = [m.nombre.lower()
-                               for m in nuevo_producto.modificadores]
+    return schemas.ProductoResponse.model_validate(nuevo_producto)
 
     return respuesta
 
@@ -229,7 +228,6 @@ def obtener_catalogo_completo(db: Session = Depends(get_db)):
     productos_response = []
     for p in productos_db:
         prod_resp = schemas.ProductoResponse.model_validate(p)
-        prod_resp.modificadores = [m.nombre.lower() for m in p.modificadores]
         productos_response.append(prod_resp)
 
     return schemas.CatalogoResponse(
@@ -241,7 +239,6 @@ def obtener_catalogo_completo(db: Session = Depends(get_db)):
             total_items=len(productos_response)
         )
     )
-
 
 @app.put("/api/products/{producto_id}", response_model=schemas.ProductoResponse)
 def editar_producto(producto_id: int, producto: schemas.ProductoUpdate, db: Session = Depends(get_db)):
@@ -446,3 +443,89 @@ def login(credenciales: schemas.LoginRequest, db: Session = Depends(get_db)):
             version_sistema="1.0.0"
         )
     )
+
+# ENDPOINTS para Ordenes
+
+# POST
+@app.post("/api/ordenes/", response_model=schemas.OrdenResponse)
+def crear_orden(orden: schemas.OrdenCreate, db: Session = Depends(get_db)):
+    total_calculado = sum(detalle.subtotal for detalle in orden.detalles)
+    nueva_orden = models.Orden(
+        numero_mesa=orden.numero_mesa,
+        tipo_pedido=orden.tipo_pedido,
+        estado="pendiente",
+        total=total_calculado
+    )
+    db.add(nueva_orden)
+    db.commit()
+    db.refresh(nueva_orden) 
+
+    for det in orden.detalles:
+        nuevo_detalle = models.DetalleOrden(
+            id_orden=nueva_orden.id, # Lo amarramos a la orden que acabamos de crear
+            id_producto=det.id_producto,
+            cantidad=det.cantidad,
+            subtotal=det.subtotal
+        )
+        db.add(nuevo_detalle)
+        db.commit()
+        db.refresh(nuevo_detalle)
+
+        if det.opciones:
+            opciones_db = db.query(models.OpcionModificador).filter(
+                models.OpcionModificador.id.in_(det.opciones)
+            ).all()
+            nuevo_detalle.opciones = opciones_db
+            db.commit()
+
+    db.refresh(nueva_orden)
+    
+    return nueva_orden
+
+# GET para listado de ordenes
+@app.get("/api/ordenes/", response_model=List[schemas.OrdenResponse])
+def obtener_ordenes(estado: Optional[str] = None, db: Session = Depends(get_db)):
+    consulta = db.query(models.Orden)
+
+    if estado:
+        consulta = consulta.filter(models.Orden.estado == estado)
+        
+    ordenes = consulta.all()
+    return ordenes
+
+# GET para detalles de orden
+@app.get("/api/ordenes/{orden_id}", response_model=schemas.OrdenResponse)
+def obtener_orden(orden_id: int, db: Session = Depends(get_db)):
+    orden = db.query(models.Orden).filter(models.Orden.id == orden_id).first()
+    
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+        
+    return orden
+
+# PUT 
+@app.put("/api/ordenes/{orden_id}", response_model=schemas.OrdenResponse)
+def actualizar_estado_orden(orden_id: int, estado_nuevo: str, db: Session = Depends(get_db)):
+    orden = db.query(models.Orden).filter(models.Orden.id == orden_id).first()
+    
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    
+    orden.estado = estado_nuevo
+    db.commit()
+    db.refresh(orden)
+    
+    return orden
+
+# DELETE
+@app.delete("/api/ordenes/{orden_id}")
+def cancelar_orden(orden_id: int, db: Session = Depends(get_db)):
+    orden = db.query(models.Orden).filter(models.Orden.id == orden_id).first()
+    
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    
+    orden.estado = "cancelada"
+    db.commit()
+    
+    return {"mensaje": f"La orden #{orden_id} ha sido cancelada exitosamente"}

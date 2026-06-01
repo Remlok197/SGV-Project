@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime
 
 # --- OPCIONES DE MODIFICADORES ---
 
@@ -21,6 +22,17 @@ class OpcionUpdate(BaseModel):
 
 class OpcionResponse(OpcionBase):
     id: int
+    nombre: str
+    precio_extra: float
+    disponible: bool
+
+    class Config:
+        from_attributes = True
+
+class OpcionBreve(BaseModel):
+    id: int
+    nombre: str
+    precio_extra: float
 
     class Config:
         from_attributes = True
@@ -40,6 +52,9 @@ class GrupoModificadorCreate(GrupoModificadorBase):
 
 class GrupoModificadorResponse(GrupoModificadorBase):
     id: int
+    nombre: str
+    minimo: int
+    maximo: Optional[int]
     opciones: List[OpcionResponse] = []
 
     class Config:
@@ -90,6 +105,14 @@ class ProductoBase(BaseModel):
 class ProductoCreate(ProductoBase):
     ids_modificadores: Optional[List[int]] = []
 
+class ProductoBreve(BaseModel):
+    id: int
+    nombre: str
+    precio: float
+    imagen_url: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
 
 class ProductoUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -104,7 +127,7 @@ class ProductoUpdate(BaseModel):
 class ProductoResponse(ProductoBase):
     id: int
     imagen_url: Optional[str] = None
-    modificadores: List[str] = []
+    modificadores: List[GrupoModificadorResponse] = []
 
     class Config:
         from_attributes = True
@@ -154,3 +177,40 @@ class UsuarioCreate(BaseModel):
     nombre: str
     contrasena: str
     rol: str
+
+
+# ORDENES DETALLES
+class DetalleOrdenCreate(BaseModel):
+    id_producto: int
+    cantidad: int
+    subtotal: float
+    opciones: List[int] = [] # Arreglo de IDs
+
+class DetalleOrdenResponse(BaseModel):
+    id: int
+    id_producto: int
+    cantidad: int
+    subtotal: float
+    producto: ProductoBreve
+    opciones: List[OpcionBreve] = []
+    
+    class Config:
+        from_attributes = True
+# ORDENES
+
+class OrdenCreate(BaseModel):
+    numero_mesa: Optional[int] = None
+    tipo_pedido: str = "mostrador" # "mostrador" o "mesa"
+    detalles: List[DetalleOrdenCreate]
+
+class OrdenResponse(BaseModel):
+    id: int
+    serie: Optional[str]
+    numero_mesa: Optional[int]
+    estado: str
+    fecha: datetime
+    total: float 
+    detalles: List[DetalleOrdenResponse]
+
+    class Config:
+        from_attributes = True

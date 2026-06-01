@@ -64,9 +64,11 @@ class Orden(Base):
     __tablename__ = "ordenes"
     id = Column(Integer, primary_key=True, index=True)
     serie = Column(String(4), nullable=True)
+    tipo_pedido = Column(String, nullable=False)
     numero_mesa = Column(Integer, nullable=True) 
     fecha = Column(DateTime, default=datetime.utcnow)
     estado = Column(String, default="pendiente") 
+    total = Column(Float, nullable=True)
 
     detalles = relationship("DetalleOrden", back_populates="orden")
     ventas = relationship("Venta", back_populates="orden")
