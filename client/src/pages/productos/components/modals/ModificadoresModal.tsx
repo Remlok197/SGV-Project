@@ -10,6 +10,7 @@ import NuevoModificadorModal from "./NuevoModificadorModal";
 interface ModificadoresModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  categorias: { id: string | number; name: string }[];
 }
 
 // Componente para cada ítem arrastrable
@@ -51,7 +52,7 @@ function SortableModificadorItem({ mod }: { mod: any }) {
   );
 }
 
-export default function ModificadoresModal({ isOpen, onOpenChange }: ModificadoresModalProps) {
+export default function ModificadoresModal({ isOpen, onOpenChange, categorias }: ModificadoresModalProps) {
   const [modificadores, setModificadores] = useState<any[]>([]);
   const [isNuevoModalOpen, setIsNuevoModalOpen] = useState(false);
 
@@ -156,6 +157,7 @@ export default function ModificadoresModal({ isOpen, onOpenChange }: Modificador
         isOpen={isNuevoModalOpen} 
         onOpenChange={setIsNuevoModalOpen} 
         onSave={handleSaveNuevoModificador} 
+        categorias={categorias}
       />
     </Modal>
   );

@@ -25,6 +25,7 @@ class Categoria(Base):
     es_sistema = Column(Boolean, default=False)
 
     productos = relationship("Producto", back_populates="categoria")
+    grupos_modificadores = relationship("GrupoModificador", back_populates="categoria")
 
 class Producto(Base):
     __tablename__ = "productos"
@@ -38,7 +39,7 @@ class Producto(Base):
     
     categoria = relationship("Categoria", back_populates="productos")
     detalles = relationship("DetalleOrden", back_populates="producto")
-    modificadores = relationship("GrupoModificador", secondary=producto_grupo_modificador)
+    modificadores = relationship("GrupoModificador", secondary=producto_grupo_modificador, lazy="joined")
 
 class GrupoModificador(Base):
     __tablename__ = "grupos_modificadores"
@@ -46,7 +47,9 @@ class GrupoModificador(Base):
     nombre = Column(String, nullable=False) 
     minimo = Column(Integer, default=0)     
     maximo = Column(Integer, nullable=True)
+    categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
 
+    categoria = relationship("Categoria", back_populates="grupos_modificadores")
     opciones = relationship("OpcionModificador", back_populates="grupo", cascade="all, delete-orphan")
 
 class OpcionModificador(Base):

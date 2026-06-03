@@ -12,6 +12,12 @@ export default function ProductCard({
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
+const modificadoresTexto = Array.isArray(modifiers) && modifiers.length > 0 
+    ? modifiers
+        .map(m => m?.nombre ? m.nombre.toLowerCase() : "") 
+        .filter(Boolean) 
+        .join(", ")
+    : "sin modificadores";
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -52,7 +58,7 @@ export default function ProductCard({
         </p>
         
         <p className="font-regular text-secundaryText text-xs md:text-sm pr-4 truncate">
-          {modifiers || "Sin modificadores"}
+          {modificadoresTexto}
         </p>
 
         <div className="flex items-center gap-1.5 mt-auto">

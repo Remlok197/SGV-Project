@@ -12,6 +12,7 @@ interface FormSelectProps {
   options: Option[];
   defaultValue?: string;
   headerAction?: ReactNode;
+  onChange?: (e: any) => void;
 }
 
 export function FormSelect({ name, label, options, defaultValue, headerAction }: FormSelectProps) {

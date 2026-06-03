@@ -45,6 +45,7 @@ class GrupoModificadorBase(BaseModel):
     nombre: str
     minimo: int = 0
     maximo: Optional[int] = None
+    categoria_id: int
 
 
 class GrupoModificadorCreate(GrupoModificadorBase):
@@ -130,6 +131,7 @@ class ProductoUpdate(BaseModel):
 
 class ProductoResponse(ProductoBase):
     id: int
+    id_categoria: Optional[int] = None
     imagen_url: Optional[str] = None
     modificadores: List[GrupoModificadorResponse] = []
 

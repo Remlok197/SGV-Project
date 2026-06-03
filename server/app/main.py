@@ -170,6 +170,10 @@ def obtener_iconos_disponibles():
 
 @app.post("/api/products", response_model=schemas.ProductoResponse)
 def crear_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
+    print("\n====== DEBUG FASTAPI ======")
+    print("1. Datos recibidos de Postman/Frontend:", producto.model_dump())
+    print("2. IDs de modificadores a buscar:", producto.ids_modificadores)
+
     if producto.id_categoria:
         categoria_db = db.query(models.Categoria).filter(models.Categoria.id == producto.id_categoria).first()
         if getattr(categoria_db, "es_sistema", False):
@@ -183,15 +187,19 @@ def crear_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_d
         modificadores_db = db.query(models.GrupoModificador).filter(
             models.GrupoModificador.id.in_(producto.ids_modificadores)
         ).all()
+        print("3. Modificadores encontrados en PostgreSQL:", [m.nombre for m in modificadores_db])
         nuevo_producto.modificadores = modificadores_db
+    else:
+        print("3. No se recibieron IDs para buscar.")
 
     db.add(nuevo_producto)
     db.commit()
     db.refresh(nuevo_producto)
+    
+    print("4. Producto guardado con modificadores:", [m.nombre for m in nuevo_producto.modificadores])
+    print("===========================\n")
 
     return schemas.ProductoResponse.model_validate(nuevo_producto)
-
-    return respuesta
 
 # IMAGE POST ENDPOINT (CREATE)
 
@@ -271,23 +279,31 @@ def editar_producto(producto_id: int, producto: schemas.ProductoUpdate, db: Sess
     return respuesta
 
 
-@app.delete("/api/products/{producto_id}")
-def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
+@app.put("/api/products/{producto_id}", response_model=schemas.ProductoResponse)
+def editar_producto(producto_id: int, producto: schemas.ProductoUpdate, db: Session = Depends(get_db)):
     producto_db = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
     if not producto_db:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    try:
-        db.delete(producto_db)
-        db.commit()
-    except IntegrityError as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=400,
-            detail="No se puede eliminar el producto porque está asociado a órdenes o registros existentes. Se sugiere desactivar el producto."
-        )
+    if producto.id_categoria:
+        categoria_db = db.query(models.Categoria).filter(models.Categoria.id == producto.id_categoria).first()
+        if getattr(categoria_db, "es_sistema", False):
+            raise HTTPException(status_code=400, detail="No se pueden asignar productos a una categoría del sistema")
 
-    return {"mensaje": "Producto eliminado exitosamente"}
+    update_data = producto.model_dump(exclude_unset=True, exclude={'ids_modificadores'})
+    for key, value in update_data.items():
+        setattr(producto_db, key, value)
+
+    if producto.ids_modificadores is not None:
+        modificadores_db = db.query(models.GrupoModificador).filter(
+            models.GrupoModificador.id.in_(producto.ids_modificadores)
+        ).all()
+        producto_db.modificadores = modificadores_db
+
+    db.commit()
+    db.refresh(producto_db)
+
+    return schemas.ProductoResponse.model_validate(producto_db)
 
 
 # RUTAS DE LOS MODIFICADORES BABYYYY
@@ -300,7 +316,8 @@ def crear_grupo_modificador(grupo: schemas.GrupoModificadorCreate, db: Session =
     nuevo_grupo = models.GrupoModificador(
         nombre=grupo.nombre,
         minimo=grupo.minimo,
-        maximo=grupo.maximo
+        maximo=grupo.maximo,
+        categoria_id=grupo.categoria_id
     )
     db.add(nuevo_grupo)
     db.commit()

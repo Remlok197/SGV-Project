@@ -16,9 +16,10 @@ interface NuevoModificadorModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSave: (data: any) => void;
+  categorias: { id: string | number; name: string }[];
 }
 
-export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave }: NuevoModificadorModalProps) {
+export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, categorias }: NuevoModificadorModalProps) {
   const [opciones, setOpciones] = useState<Opcion[]>([
     { id: "1", nombre: "", precio_extra: "0.00" }
   ]);
@@ -43,6 +44,7 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave }: 
     const nombre = formData.get("nombre") as string;
     const minimo = formData.get("minimo") as string;
     const maximo = formData.get("maximo") as string;
+    const categoriaId = formData.get("categoria_id") as string;
 
     if (!nombre || !nombre.trim()) return; // Valida que tenga nombre
     
@@ -50,6 +52,7 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave }: 
       nombre,
       minimo: parseInt(minimo) || 0,
       maximo: maximo ? parseInt(maximo) : null,
+      categoria_id: parseInt(categoriaId),
       opciones: opciones.filter(o => o.nombre.trim() !== "").map(o => ({
         nombre: o.nombre,
         precio_extra: parseFloat(o.precio_extra) || 0
@@ -89,6 +92,25 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave }: 
                     schemaField={stringSchema}
                     labelClassName="text-lg font-bold text-primaryText"
                   />
+
+                  {/* Categoría */}
+                  <div className="flex flex-col gap-1">
+                    <FieldLabel className="text-lg font-bold text-primaryText mb-1">
+                      Categoría
+                    </FieldLabel>
+                    <select
+                      name="categoria_id"
+                      required
+                      className="h-11 px-3 rounded-lg border border-borderInput text-terciaryText bg-backgroundInput focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-blue-400/90 focus-visible:outline-none"
+                    >
+                      <option value="">Selecciona una categoría...</option>
+                      {(categorias || []).map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
                   {/* Reglas de selección */}
                   <div className="grid grid-cols-2 gap-6">
