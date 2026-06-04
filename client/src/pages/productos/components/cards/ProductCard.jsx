@@ -12,11 +12,8 @@ export default function ProductCard({
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
-const modificadoresTexto = Array.isArray(modifiers) && modifiers.length > 0 
-    ? modifiers
-        .map(m => m?.nombre ? m.nombre.toLowerCase() : "") 
-        .filter(Boolean) 
-        .join(", ")
+const modificadoresTexto = modifiers && modifiers.trim() !== "" 
+    ? modifiers.toLowerCase() 
     : "sin modificadores";
 
   useEffect(() => {
