@@ -1,5 +1,5 @@
 from app.database import SessionLocal
-from app.seeders import seed_categories, seed_users
+from app.seeders import seed_categories, seed_users, seed_mockup
 
 def run_all_seeders():
     db = SessionLocal()
@@ -15,6 +15,10 @@ def run_all_seeders():
         # 2. Entidades Principales
         print("\n--> Sembrando Usuarios...")
         seed_users.seed(db)
+
+        # 3. Datos de Prueba (Mockup)
+        print("\n--> Sembrando Datos de Prueba (Mockup)...")
+        seed_mockup.seed(db)
 
         print("\n========================================")
         print("✅ Seeding completado con éxito.")
