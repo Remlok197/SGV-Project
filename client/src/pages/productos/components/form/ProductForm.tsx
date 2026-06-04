@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button, Form } from "@heroui/react";
+import { Pencil, ChevronDown } from "lucide-react";
 import { productFormSchema, Product } from "../../../../schemas/productSchema";
 import ImageUpload from "./ImageUpload";
 import { FormTextField } from "./FormTextField";
@@ -23,6 +24,43 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
   );
   const [checkedMods, setCheckedMods] = useState<number[]>([]);
   const [modificadores, setModificadores] = useState<any[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar el dropdown si se hace click afuera
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Función para prender/apagar un checkbox
+  const handleToggleMod = (modId: number) => {
+    setCheckedMods(prev => 
+      prev.includes(modId) 
+        ? prev.filter(id => id !== modId) // Si ya estaba, lo quitamos
+        : [...prev, modId] // Si no estaba, lo agregamos
+    );
+  };
+
+  // Función para prender/apagar todos los modificadores de una categoría
+  const handleToggleCategory = (catModIds: number[]) => {
+    setCheckedMods(prev => {
+      const allIncluded = catModIds.every(id => prev.includes(id));
+      if (allIncluded) {
+        // Si ya están todos seleccionados, los deseleccionamos todos
+        return prev.filter(id => !catModIds.includes(id));
+      } else {
+        // Si falta alguno, los agregamos todos sin duplicar
+        const missing = catModIds.filter(id => !prev.includes(id));
+        return [...prev, ...missing];
+      }
+    });
+  };
 
   // Efecto A: Traer TODOS los modificadores desde tu API en FastAPI
   useEffect(() => {
@@ -55,14 +93,6 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
     }
   }, [product]);
 
-  // Función para prender/apagar un checkbox
-  const handleToggleMod = (modId: number) => {
-    setCheckedMods(prev => 
-      prev.includes(modId) 
-        ? prev.filter(id => id !== modId) // Si ya estaba, lo quitamos
-        : [...prev, modId] // Si no estaba, lo agregamos
-    );
-  };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -156,20 +186,16 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
         />
 
         {/* CATEGORÍA */}
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-bold text-gray-800 mb-1">Categoría</label>
-          <select
-            name="categoryId"
-            value={selectedCategoryId} // <-- Esto es clave
-            onChange={(e) => setSelectedCategoryId(e.target.value)}
-            className="h-11 px-3 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
-          >
-            <option value="" disabled>Selecciona...</option>
-            {categories.filter(cat => cat.name !== "Todos").map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
+        <FormSelect
+          name="categoryId"
+          label="Categoría"
+          defaultValue={selectedCategoryId || ""}
+          onChange={(e: any) => setSelectedCategoryId(e.target.value)}
+          options={[
+            { value: "", label: "Selecciona una categoría" },
+            ...categories.filter(cat => cat.name !== "Todos").map(cat => ({ value: String(cat.id), label: cat.name }))
+          ]}
+        />
 
         {/* UNIDADES */}
         <FormSelect
@@ -183,62 +209,104 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
         />
 
         {/* MODIFICADORES */}
-        {/* MODIFICADORES CON CHECKBOXES (FILTRADOS) */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between items-center mb-1">
-            <FieldLabel className="">Modificadores</FieldLabel>
+        {/* MODIFICADORES CON DROPDOWN MULTISELECT AGRUPADO */}
+        <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
+          <div className="flex justify-between items-center min-h-[24px]">
+            <FieldLabel className="text-md font-semibold text-foreground transition-colors duration-200 group-data-[invalid]:text-destructive">
+              Modificadores
+            </FieldLabel>
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="text-xs text-orange-500 font-semibold hover:text-orange-600 transition-colors"
+              className="flex items-center gap-1 text-xs text-terciaryText hover:text-foreground transition-colors"
             >
-              Editar
+              <Pencil className="w-3 h-3" />
+              <span className="underline">Editar</span>
             </button>
           </div>
           
-          <div className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto shadow-sm">
-            {selectedCategoryId ? (
-              modificadores.filter(m => m.categoria_id.toString() === selectedCategoryId.toString()).length > 0 ? (
-                modificadores
-                  .filter(m => m.categoria_id.toString() === selectedCategoryId.toString())
-                  .map(mod => {
-                    // Validamos si estamos editando y el producto ya tenía este modificador guardado
-                    const isChecked = Array.isArray((product as any)?.modificadores) && 
-                  (product as any).modificadores.some((pm: any) => pm.id === mod.id);
-                    return (
-                      <label key={mod.id} className="flex items-center gap-3 cursor-pointer group">
-                        <input 
-                          type="checkbox" 
-                          checked={checkedMods.includes(mod.id)}
-                          onChange={() => handleToggleMod(mod.id)}
-                          className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500 cursor-pointer"
-                        />
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                          {mod.nombre} <span className="text-xs text-gray-400 font-normal ml-1">(Mín {mod.minimo})</span>
-                        </span>
-                      </label>
-                    );
-                  })
-              ) : (
-                <span className="text-sm text-gray-400 italic text-center py-2">
-                  No hay modificadores para esta categoría.
-                </span>
-              )
-            ) : (
-              <span className="text-sm text-orange-400 italic text-center py-2 font-medium">
-                Selecciona una categoría primero.
-              </span>
-            )}
-          </div>
+          {(() => {
+            const filteredMods = selectedCategoryId 
+              ? modificadores.filter(m => m.categoria_id?.toString() === selectedCategoryId.toString())
+              : [];
+
+            return (
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={!selectedCategoryId || filteredMods.length === 0}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full flex items-center justify-between bg-backgroundInput border border-borderInput hover:bg-backgroundInput/80 h-10 px-3 rounded-lg text-sm text-terciaryText transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primaryAction/50 disabled:opacity-60 disabled:hover:bg-backgroundInput disabled:cursor-not-allowed"
+                >
+                  <span className={`truncate flex-1 text-left pr-2 ${checkedMods.length > 0 && selectedCategoryId && filteredMods.length > 0 ? "text-terciaryText" : ""}`}>
+                    {!selectedCategoryId 
+                      ? "Selecciona una categoría" 
+                      : filteredMods.length === 0 
+                        ? "Sin modificadores para esta categoría"
+                        : checkedMods.length > 0 
+                          ? `${checkedMods.length} seleccionado${checkedMods.length !== 1 ? 's' : ''}` 
+                          : "Agregar modificadores"}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-terciaryText transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isDropdownOpen && filteredMods.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-background border border-borderInput rounded-lg shadow-xl max-h-64 overflow-y-auto flex flex-col p-2 animate-in fade-in zoom-in-95 duration-200">
+                    {[
+                      ...categories.filter(cat => filteredMods.some(m => m.categoria_id?.toString() === cat.id.toString())),
+                    ].map((cat) => {
+                      const catMods = filteredMods.filter(m => m.categoria_id?.toString() === cat.id.toString());
+                      if (catMods.length === 0) return null;
+
+                      return (
+                        <div key={cat.id} className="flex flex-col mb-3 last:mb-0">
+                          <div className="px-2 py-1.5 bg-backgroundInput/50 rounded-md mb-1.5 flex items-center gap-2.5">
+                            <label className="flex items-center cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={catMods.length > 0 && catMods.every(mod => checkedMods.includes(mod.id))}
+                                onChange={() => handleToggleCategory(catMods.map(m => m.id))}
+                                className="w-3.5 h-3.5 rounded border-borderInput text-primaryAction focus:ring-primaryAction/50 cursor-pointer transition-all"
+                              />
+                            </label>
+                            <span className="text-[11px] font-bold text-primaryAction uppercase tracking-wider">{cat.name}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            {catMods.map(mod => (
+                              <label key={mod.id} className="flex items-center gap-3 pl-8 pr-2 py-1.5 hover:bg-backgroundInput rounded-md cursor-pointer group transition-colors">
+                                <input 
+                                  type="checkbox" 
+                                  checked={checkedMods.includes(mod.id)}
+                                  onChange={() => handleToggleMod(mod.id)}
+                                  className="w-4 h-4 rounded border-borderInput text-primaryAction focus:ring-primaryAction/50 cursor-pointer transition-all"
+                                />
+                                <span className="text-sm font-medium text-primaryText group-hover:text-primaryText/80 transition-colors">
+                                  {mod.nombre}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* DISPONIBILIDAD */}
-        <div className="flex flex-col gap-1 justify-center">
-          <FieldLabel className="mb-1">Disponibilidad</FieldLabel>
-          <label className="relative inline-flex items-center cursor-pointer w-max">
-            <input type="checkbox" name="isAvailable" defaultChecked={product ? product.isAvailable : true} className="sr-only peer" />
-            <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-          </label>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center min-h-[24px]">
+            <FieldLabel className="text-md font-semibold text-foreground">Disponibilidad</FieldLabel>
+          </div>
+          <div className="h-10 flex items-center">
+            <label className="relative inline-flex items-center cursor-pointer w-max">
+              <input type="checkbox" name="isAvailable" defaultChecked={product ? product.isAvailable : true} className="sr-only peer" />
+              <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+            </label>
+          </div>
         </div>
 
       </div>

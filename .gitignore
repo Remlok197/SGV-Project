@@ -2,7 +2,9 @@
 node_modules/
 dist/
 .env
-.png
+*.png
+*.jpg
+*.jpeg
 
 # Python
 __pycache__/
