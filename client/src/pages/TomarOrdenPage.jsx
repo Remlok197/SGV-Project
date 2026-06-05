@@ -8,20 +8,30 @@ import MenuProductCard from "./tomarOrden/components/MenuProductCard";
 import ProductOptionsModal from "./tomarOrden/components/ProductOptionsModal";
 import { useProducts } from "../hooks/useProducts";
 import { useOrders } from "../hooks/useOrders";
+import { useCart } from "../hooks/useCart";
 import { ReactSVG } from "react-svg";
 
 export default function TomarOrdenPage() {
     const [activeCategory, setActiveCategory] = useState("Todos");
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [orderItems, setOrderItems] = useState([]);
     const { catalog, loading, error } = useProducts();
     const { createOrder, loading: isCreatingOrder } = useOrders();
+    const { 
+        orderItems, 
+        addItem, 
+        removeItem, 
+        updateItemQuantity, 
+        clearCart, 
+        calculateItemBasePrice, 
+        calculateItemTotal, 
+        total 
+    } = useCart();
 
     const handleCreateOrder = async () => {
         if (orderItems.length === 0) return;
         try {
             await createOrder(orderItems, { tipo_pedido: "mostrador" });
-            setOrderItems([]);
+            clearCart();
             alert("Orden creada exitosamente");
         } catch (err) {
             alert(err.message || "Hubo un error al crear la orden");
@@ -30,24 +40,8 @@ export default function TomarOrdenPage() {
 
     const handleCancelOrder = () => {
         if (window.confirm("¿Estás seguro de que deseas cancelar la orden actual?")) {
-            setOrderItems([]);
+            clearCart();
         }
-    };
-
-    const updateItemQuantity = (index, newQuantity) => {
-        if (newQuantity < 1) {
-            removeItem(index);
-            return;
-        }
-        setOrderItems(prev => {
-            const newItems = [...prev];
-            newItems[index] = { ...newItems[index], quantity: newQuantity };
-            return newItems;
-        });
-    };
-
-    const removeItem = (index) => {
-        setOrderItems(prev => prev.filter((_, i) => i !== index));
     };
 
     if (loading) return <div className="flex justify-center items-center h-full w-full"><p className="text-secundaryText font-medium">Cargando menú...</p></div>;
@@ -139,8 +133,8 @@ export default function TomarOrdenPage() {
                             </div>
                         ) : (
                             orderItems.map((item, index) => {
-                                const basePrice = item.product.price ? parseFloat(item.product.price.toString().replace(/[^0-9.]/g, '')) : 17.00;
-                                const itemTotal = basePrice * item.quantity;
+                                const basePrice = calculateItemBasePrice(item);
+                                const itemTotal = calculateItemTotal(item);
                                 return (
                                     <div key={index} className={`flex flex-col ${index !== orderItems.length - 1 ? 'border-b-2 border-borderInput/60 pb-4 mb-4' : 'pb-2'}`}>
                                         {/* Top Row: Info and Counter */}
@@ -211,10 +205,7 @@ export default function TomarOrdenPage() {
                         <div className="flex justify-between items-center mb-6">
                             <span className="font-bold text-primaryText text-base md:text-lg">Total:</span>
                             <span className="font-bold text-primaryText text-base md:text-lg">
-                                ${orderItems.reduce((acc, item) => {
-                                    const bp = item.product.price ? parseFloat(item.product.price.toString().replace(/[^0-9.]/g, '')) : 17.00;
-                                    return acc + (bp * item.quantity);
-                                }, 0).toFixed(2)}
+                                ${total.toFixed(2)}
                             </span>
                         </div>
                         <div className="flex gap-4">
@@ -243,7 +234,7 @@ export default function TomarOrdenPage() {
                 onOpenChange={(isOpen) => !isOpen && setSelectedProduct(null)} 
                 product={selectedProduct}
                 onAdd={(data) => {
-                    setOrderItems(prev => [...prev, data]);
+                    addItem(data);
                     setSelectedProduct(null);
                 }}
             />
