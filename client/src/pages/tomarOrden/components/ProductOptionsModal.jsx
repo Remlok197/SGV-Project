@@ -1,17 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from "@heroui/react";
 import { X, Minus, Plus } from "lucide-react";
 import { orderItemClientSchema } from "../../../schemas/orderSchema";
 
-export default function ProductOptionsModal({ isOpen, onOpenChange, product, onAdd }) {
+export default function ProductOptionsModal({ isOpen, onOpenChange, product, categoryName, initialItem, onAdd }) {
     const [quantity, setQuantity] = useState(1);
+    const [errorMsg, setErrorMsg] = useState('');
     
-    // Estado inicial mockeado para los seleccionados
     const [selectedOptions, setSelectedOptions] = useState({
-        "Carne": ["Bistec"],
+        "Carne": [],
         "Salsa": [],
         "Verdura": []
     });
+
+    useEffect(() => {
+        if (isOpen) {
+            if (initialItem) {
+                setQuantity(initialItem.quantity);
+                setSelectedOptions(initialItem.options || { "Carne": [], "Salsa": [], "Verdura": [] });
+            } else {
+                setQuantity(1);
+                setSelectedOptions({ "Carne": [], "Salsa": [], "Verdura": [] });
+            }
+            setErrorMsg('');
+        } else {
+            setTimeout(() => {
+                setQuantity(1);
+                setErrorMsg('');
+                setSelectedOptions({ "Carne": [], "Salsa": [], "Verdura": [] });
+            }, 300);
+        }
+    }, [isOpen, initialItem]);
 
     if (!product) return null;
 
@@ -26,6 +45,12 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
             if (current.includes(option)) {
                 return { ...prev, [category]: current.filter(o => o !== option) };
             }
+            
+            // Límite de opciones para Carne
+            if (category === "Carne" && current.length >= 2) {
+                return prev;
+            }
+
             return { ...prev, [category]: [...current, option] };
         });
     };
@@ -35,30 +60,34 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
         return (selectedOptions[category] || []).includes(option);
     };
 
+    const hasModifiers = !['Bebidas', 'Postres', 'Cervezas'].includes(categoryName);
+
     const handleAdd = () => {
-        const payload = { quantity, options: selectedOptions };
-        const validation = orderItemClientSchema.safeParse(payload);
+        setErrorMsg(''); // clear previous error
+        let finalOptions = {};
         
-        if (!validation.success) {
-            // Mostrar error usando alert (o una notificación)
-            alert(validation.error.issues[0].message);
-            return;
+        if (hasModifiers) {
+            finalOptions = selectedOptions;
+            const payload = { quantity, options: finalOptions };
+            const validation = orderItemClientSchema.safeParse(payload);
+            
+            if (!validation.success) {
+                setErrorMsg(validation.error.issues[0].message);
+                return;
+            }
         }
 
         if (onAdd) {
-            onAdd({ product, quantity: validation.data.quantity, options: validation.data.options });
+            onAdd({ product, quantity, options: finalOptions });
         }
         onOpenChange(false);
-        // Reset state after add
-        setTimeout(() => {
-            setQuantity(1);
-            setSelectedOptions({ "Carne": ["Bistec"], "Salsa": [], "Verdura": [] });
-        }, 300);
     };
 
     // Obtenemos el precio base numérico para calcular el total
     const basePrice = typeof product.price === 'number' ? product.price : 17.00;
-    const totalPrice = (basePrice * quantity).toFixed(2);
+    const surcharge = hasModifiers && (selectedOptions["Carne"] || []).includes("Tripa") ? 2.00 : 0;
+    const finalPricePerUnit = basePrice + surcharge;
+    const totalPrice = (finalPricePerUnit * quantity).toFixed(2);
 
     return (
         <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
@@ -88,10 +117,23 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
 
                         <hr className="mx-6 border-t border-borderInput/50" />
 
+                        {errorMsg && (
+                            <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm font-medium">
+                                {errorMsg}
+                            </div>
+                        )}
+
                         {/* Opciones (Body) */}
                         <Modal.Body className="p-6 pt-2 overflow-y-auto flex-1 hide-scrollbar">
+                            {!hasModifiers && (
+                                <div className="flex flex-col items-center justify-center py-8 text-secundaryText">
+                                    <p className="font-medium">Este producto no requiere preparación especial.</p>
+                                </div>
+                            )}
                             
-                            {/* Categoría: Carne */}
+                            {hasModifiers && (
+                                <>
+                                    {/* Categoría: Carne */}
                             <div className="mb-6 mt-4">
                                 <h3 className="text-lg font-bold text-primaryText">Carne</h3>
                                 <p className="text-xs text-secundaryText font-medium mb-3">Mín 1 / Max 2</p>
@@ -162,7 +204,9 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
                                         </button>
                                     ))}
                                 </div>
-                            </div>
+                                    </div>
+                                </>
+                            )}
 
                         </Modal.Body>
 
@@ -172,14 +216,32 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
                         <div className="p-6 pt-4 flex gap-4 items-center shrink-0">
                             <div className="flex items-center rounded-lg overflow-hidden shrink-0 h-10">
                                 <button 
-                                    onClick={() => setQuantity(quantity - 1)}
+                                    onClick={() => setQuantity(Math.max(1, (parseInt(quantity) || 1) - 1))}
                                     className="w-10 h-full bg-primaryAction text-white flex items-center justify-center hover:bg-primaryAction/90 transition-colors"
                                 >
                                     <Minus className="size-4" />
                                 </button>
-                                <span className="font-bold text-lg text-primaryText w-10 text-center bg-white h-full flex items-center justify-center border-y border-borderInput">{quantity}</span>
+                                <input 
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    value={quantity}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') {
+                                            setQuantity('');
+                                        } else {
+                                            const num = parseInt(val, 10);
+                                            if (!isNaN(num) && num >= 1) setQuantity(num);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        if (quantity === '' || quantity < 1) setQuantity(1);
+                                    }}
+                                    className="font-bold text-lg text-primaryText w-10 text-center bg-white h-full border-y border-borderInput outline-none m-0 [-moz-appearance:_textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                                />
                                 <button 
-                                    onClick={() => setQuantity(quantity + 1)}
+                                    onClick={() => setQuantity((parseInt(quantity) || 0) + 1)}
                                     className="w-10 h-full bg-primaryAction text-white flex items-center justify-center hover:bg-primaryAction/90 transition-colors"
                                 >
                                     <Plus className="size-4" />
@@ -190,7 +252,7 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
                                 onClick={handleAdd}
                                 className="flex-1 h-10 rounded-lg bg-primaryAction text-white font-bold hover:bg-primaryAction/90 transition-colors shadow-md shadow-primaryAction/20 text-sm flex items-center justify-center uppercase tracking-wide"
                             >
-                                Añadir a la orden • ${totalPrice}
+                                {initialItem ? 'Actualizar Orden' : 'Añadir a la orden'} • ${totalPrice}
                             </button>
                         </div>
                         
