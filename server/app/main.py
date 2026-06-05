@@ -466,35 +466,60 @@ def login(credenciales: schemas.LoginRequest, db: Session = Depends(get_db)):
 # POST
 @app.post("/api/ordenes/", response_model=schemas.OrdenResponse)
 def crear_orden(orden: schemas.OrdenCreate, db: Session = Depends(get_db)):
-    total_calculado = sum(detalle.subtotal for detalle in orden.detalles)
+    # 1. Crear orden inicialmente con total 0
     nueva_orden = models.Orden(
         numero_mesa=orden.numero_mesa,
         tipo_pedido=orden.tipo_pedido,
         estado="pendiente",
-        total=total_calculado
+        total=0.0
     )
     db.add(nueva_orden)
     db.commit()
     db.refresh(nueva_orden) 
 
+    total_calculado_seguro = 0.0
+
     for det in orden.detalles:
+        # 2. Consultar el producto real en la BD para evitar precios falsos
+        producto = db.query(models.Producto).filter(models.Producto.id == det.id_producto).first()
+        if not producto:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail=f"Producto con ID {det.id_producto} no encontrado")
+            
+        precio_unitario = producto.precio
+
+        opciones_db = []
+        # 3. Sumar los precios extras de los modificadores elegidos
+        if det.opciones:
+            opciones_db = db.query(models.OpcionModificador).filter(
+                models.OpcionModificador.id.in_(det.opciones)
+            ).all()
+            precio_extra = sum(op.precio_extra for op in opciones_db)
+            precio_unitario += precio_extra
+            
+        # 4. Calcular el subtotal seguro para este renglón
+        subtotal_seguro = precio_unitario * det.cantidad
+        total_calculado_seguro += subtotal_seguro
+
+        # 5. Guardar el detalle con el subtotal que calculó el backend
         nuevo_detalle = models.DetalleOrden(
-            id_orden=nueva_orden.id, # Lo amarramos a la orden que acabamos de crear
+            id_orden=nueva_orden.id,
             id_producto=det.id_producto,
             cantidad=det.cantidad,
-            subtotal=det.subtotal
+            subtotal=subtotal_seguro
         )
         db.add(nuevo_detalle)
         db.commit()
         db.refresh(nuevo_detalle)
 
-        if det.opciones:
-            opciones_db = db.query(models.OpcionModificador).filter(
-                models.OpcionModificador.id.in_(det.opciones)
-            ).all()
+        # 6. Vincular los modificadores
+        if opciones_db:
             nuevo_detalle.opciones = opciones_db
             db.commit()
 
+    # 7. Actualizar la orden con la suma final correcta
+    nueva_orden.total = total_calculado_seguro
+    db.commit()
     db.refresh(nueva_orden)
     
     return nueva_orden
