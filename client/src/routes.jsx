@@ -6,6 +6,7 @@ import OrdenesPage from './pages/OrdenesPage';
 import VentasPage from './pages/VentasPage';
 import ProductosPage from './pages/productos/ProductosPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
+import TomarOrdenPage from './pages/TomarOrdenPage';
 
 export const router = createBrowserRouter([
     {
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
             {
                 path: "configuracion",
                 element: <ConfiguracionPage />
+            },
+            {
+                path: "tomar-orden",
+                element: <TomarOrdenPage />
             }
         ]
     }
