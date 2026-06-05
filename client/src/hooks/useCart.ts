@@ -30,12 +30,30 @@ export function useCart() {
         });
     };
 
+    const updateItem = (index: number, newItem: OrderItem) => {
+        setOrderItems(prev => {
+            const newItems = [...prev];
+            newItems[index] = newItem;
+            return newItems;
+        });
+    };
+
     const clearCart = () => {
         setOrderItems([]);
     };
 
     const calculateItemBasePrice = (item: OrderItem) => {
-        return typeof item.product.price === 'number' ? item.product.price : 17.00;
+        const base = typeof item.product.price === 'number' ? item.product.price : 17.00;
+        let surcharge = 0;
+        
+        if (item.options?.["Carne"]) {
+            const carneOpts = Array.isArray(item.options["Carne"]) ? item.options["Carne"] : [item.options["Carne"]];
+            if (carneOpts.includes("Tripa")) {
+                surcharge += 2.00;
+            }
+        }
+        
+        return base + surcharge;
     };
 
     const calculateItemTotal = (item: OrderItem) => {
@@ -49,6 +67,7 @@ export function useCart() {
     return {
         orderItems,
         addItem,
+        updateItem,
         removeItem,
         updateItemQuantity,
         clearCart,
