@@ -11,8 +11,8 @@ interface FormTextFieldProps {
   step?: string
   schemaField: ZodType
   startContent?: React.ReactNode
-  defaultValue?: string
   labelClassName?: string
+  errorMessage?: string
 }
 
 export function FormTextField({
@@ -25,9 +25,14 @@ export function FormTextField({
   startContent,
   defaultValue,
   labelClassName,
+  errorMessage,
 }: FormTextFieldProps) {
   const [error, setError] = React.useState<string | null>(null)
   const [isFocused, setIsFocused] = React.useState(false)
+
+  React.useEffect(() => {
+    setError(errorMessage || null);
+  }, [errorMessage]);
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     setIsFocused(false)
