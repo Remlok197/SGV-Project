@@ -235,6 +235,9 @@ def obtener_catalogo_completo(db: Session = Depends(get_db)):
 
     productos_response = []
     for p in productos_db:
+        p.modificadores.sort(key=lambda m: m.orden)
+        for m in p.modificadores:
+            m.opciones.sort(key=lambda o: o.orden)
         prod_resp = schemas.ProductoResponse.model_validate(p)
         productos_response.append(prod_resp)
 
@@ -317,6 +320,7 @@ def crear_grupo_modificador(grupo: schemas.GrupoModificadorCreate, db: Session =
         nombre=grupo.nombre,
         minimo=grupo.minimo,
         maximo=grupo.maximo,
+        orden=grupo.orden,
         categoria_id=grupo.categoria_id
     )
     db.add(nuevo_grupo)
@@ -328,7 +332,8 @@ def crear_grupo_modificador(grupo: schemas.GrupoModificadorCreate, db: Session =
             grupo_id=nuevo_grupo.id,
             nombre=opcion.nombre,
             precio_extra=opcion.precio_extra,
-            disponible=opcion.disponible
+            disponible=opcion.disponible,
+            orden=opcion.orden
         )
         db.add(nueva_opcion)
 
@@ -342,7 +347,18 @@ def crear_grupo_modificador(grupo: schemas.GrupoModificadorCreate, db: Session =
 
 @app.get("/api/modificadores/", response_model=List[schemas.GrupoModificadorResponse])
 def obtener_grupos_modificadores(db: Session = Depends(get_db)):
-    return db.query(models.GrupoModificador).all()
+    grupos = db.query(models.GrupoModificador).order_by(models.GrupoModificador.orden.asc()).all()
+    # Sort opciones locally before returning
+    for g in grupos:
+        g.opciones.sort(key=lambda o: o.orden)
+    return grupos
+
+@app.put("/api/modificadores/reorder")
+def reordenar_modificadores(items: List[schemas.ReorderItem], db: Session = Depends(get_db)):
+    for item in items:
+        db.query(models.GrupoModificador).filter(models.GrupoModificador.id == item.id).update({"orden": item.orden})
+    db.commit()
+    return {"mensaje": "Orden actualizado"}
 
 # PUT (UPDATE)
 @app.put("/api/modificadores/{modificador_id}", response_model=schemas.GrupoModificadorResponse)
@@ -378,6 +394,25 @@ def eliminar_modificador(modificador_id: int, db: Session = Depends(get_db)):
 
     return {"mensaje": "Modificador eliminado exitosamente"}
 
+
+# POST de opciones_modificador
+@app.post("/api/modificadores/{modificador_id}/opciones", response_model=schemas.OpcionResponse)
+def crear_opcion_para_modificador(modificador_id: int, opcion: schemas.OpcionCreate, db: Session = Depends(get_db)):
+    modificador_db = db.query(models.GrupoModificador).filter(models.GrupoModificador.id == modificador_id).first()
+    if not modificador_db:
+        raise HTTPException(status_code=404, detail="Modificador no encontrado")
+
+    nueva_opcion = models.OpcionModificador(
+        grupo_id=modificador_id,
+        nombre=opcion.nombre,
+        precio_extra=opcion.precio_extra,
+        disponible=opcion.disponible,
+        orden=opcion.orden
+    )
+    db.add(nueva_opcion)
+    db.commit()
+    db.refresh(nueva_opcion)
+    return nueva_opcion
 
 #  UPDATE de opciones_modificador
 @app.put("/api/opciones/{opcion_id}", response_model=schemas.OpcionResponse)

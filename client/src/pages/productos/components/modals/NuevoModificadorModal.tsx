@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { Modal } from "@heroui/react";
 import { X, Plus, Trash2, GripVertical } from "lucide-react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { z } from "zod";
 import { FormTextField } from "../form/FormTextField";
 import { FieldLabel } from "../../../../components/ui/field";
@@ -12,20 +16,99 @@ interface Opcion {
   precio_extra: string;
 }
 
+function SortableOpcionItem({ opcion, updateOption, handleRemoveOption, isOnlyOne }: { opcion: Opcion, updateOption: any, handleRemoveOption: any, isOnlyOne: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: opcion.id });
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className={`flex items-center gap-3 bg-white ${isDragging ? "opacity-50 relative" : ""}`}>
+      <div {...attributes} {...listeners} className="pt-1 text-gray-300 cursor-grab touch-none flex-shrink-0 hover:text-gray-500 focus:outline-none">
+        <GripVertical className="size-5" />
+      </div>
+      <div className="flex-1">
+        <Input 
+          type="text" 
+          value={opcion.nombre}
+          onChange={(e) => updateOption(opcion.id, "nombre", e.target.value)}
+          placeholder="Nombre de la opción (Ej. Salsa Verde)"
+          className="rounded-lg border-borderInput text-terciaryText bg-backgroundInput focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-blue-400/90 focus-visible:border-blue-400/90"
+        />
+      </div>
+      <div className="w-32 relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secundaryText text-sm font-medium z-10">$</span>
+        <Input 
+          type="number"
+          min="0"
+          step="0.01"
+          value={opcion.precio_extra}
+          onChange={(e) => updateOption(opcion.id, "precio_extra", e.target.value)}
+          placeholder="0.00"
+          className="rounded-lg border-borderInput text-terciaryText bg-backgroundInput focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-blue-400/90 focus-visible:border-blue-400/90 pl-7"
+        />
+      </div>
+      <button 
+        type="button"
+        onClick={() => handleRemoveOption(opcion.id)}
+        className={`p-2 rounded-lg transition-colors focus:outline-none flex-shrink-0 ${isOnlyOne ? 'text-gray-300 cursor-not-allowed' : 'text-red-400 hover:text-red-500 hover:bg-red-50'}`}
+        disabled={isOnlyOne}
+      >
+        <Trash2 className="size-4" />
+      </button>
+    </div>
+  );
+}
+
 interface NuevoModificadorModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (data: any) => void;
+  onSave: (data: any, id?: number) => void;
   categorias: { id: string | number; name: string }[];
+  initialData?: any;
 }
 
-export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, categorias }: NuevoModificadorModalProps) {
+export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, categorias, initialData }: NuevoModificadorModalProps) {
   const [opciones, setOpciones] = useState<Opcion[]>([
     { id: "1", nombre: "", precio_extra: "0.00" }
   ]);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      if (initialData && initialData.opciones && initialData.opciones.length > 0) {
+        setOpciones(initialData.opciones.map((o: any) => ({
+          id: o.id.toString(),
+          nombre: o.nombre,
+          precio_extra: o.precio_extra.toString()
+        })));
+      } else {
+        setOpciones([{ id: "1", nombre: "", precio_extra: "0.00" }]);
+      }
+    }
+  }, [isOpen, initialData]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setOpciones((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
   const handleAddOption = () => {
-    setOpciones([...opciones, { id: Date.now().toString(), nombre: "", precio_extra: "0.00" }]);
+    setOpciones([...opciones, { id: Date.now().toString() + "-new", nombre: "", precio_extra: "0.00" }]);
   };
 
   const handleRemoveOption = (id: string) => {
@@ -54,10 +137,11 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
       maximo: maximo ? parseInt(maximo) : null,
       categoria_id: parseInt(categoriaId),
       opciones: opciones.filter(o => o.nombre.trim() !== "").map(o => ({
+        id: o.id,
         nombre: o.nombre,
         precio_extra: parseFloat(o.precio_extra) || 0
       }))
-    });
+    }, initialData?.id);
     
     // Resetear form para la proxima vez
     setOpciones([{ id: "1", nombre: "", precio_extra: "0.00" }]);
@@ -74,9 +158,11 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
       <Modal.Backdrop className="bg-black/40 fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
         <Modal.Container size="3xl" className="w-full max-w-2xl outline-none">
           <Modal.Dialog className="outline-none bg-white rounded-[24px] w-full shadow-2xl flex flex-col max-h-[90vh]">
-            <form onSubmit={handleSave} className="flex flex-col h-full overflow-hidden">
+            <form key={initialData ? initialData.id : "new"} onSubmit={handleSave} className="flex flex-col h-full overflow-hidden">
               <Modal.Header className="flex flex-col gap-1 px-8 py-5 relative shrink-0">
-                <h2 className="text-2xl font-bold text-primaryText">Nuevo Modificador</h2>
+                <h2 className="text-2xl font-bold text-primaryText">
+                  {initialData ? "Editar Modificador" : "Nuevo Modificador"}
+                </h2>
                 <Modal.CloseTrigger className="absolute top-5 right-5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer transition-colors">
                   <X className="size-4" />
                 </Modal.CloseTrigger>
@@ -89,6 +175,7 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
                     name="nombre"
                     label="Nombre del modificador"
                     placeholder="Ej. Salsas, Tamaño..."
+                    defaultValue={initialData?.nombre || ""}
                     schemaField={stringSchema}
                     labelClassName="text-lg font-bold text-primaryText"
                   />
@@ -101,6 +188,7 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
                     <select
                       name="categoria_id"
                       required
+                      defaultValue={initialData?.categoria_id || ""}
                       className="h-11 px-3 rounded-lg border border-borderInput text-terciaryText bg-backgroundInput focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-blue-400/90 focus-visible:outline-none"
                     >
                       <option value="">Selecciona una categoría...</option>
@@ -119,7 +207,7 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
                       label="Obligatorio (Mínimo)"
                       placeholder="0"
                       type="number"
-                      defaultValue="0"
+                      defaultValue={initialData?.minimo !== undefined ? initialData.minimo.toString() : "0"}
                       schemaField={numberSchema}
                       labelClassName="text-lg font-bold text-primaryText"
                     />
@@ -128,6 +216,7 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
                       label="Máximo de opciones"
                       placeholder="Sin límite"
                       type="number"
+                      defaultValue={initialData?.maximo !== null && initialData?.maximo !== undefined ? initialData.maximo.toString() : ""}
                       schemaField={numberSchema}
                       labelClassName="text-lg font-bold text-primaryText"
                     />
@@ -140,42 +229,19 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
                   <h3 className="text-lg font-bold text-primaryText">Opciones</h3>
                   
                   <div className="flex flex-col gap-3">
-                    {opciones.map((opcion, idx) => (
-                      <div key={opcion.id} className="flex items-center gap-3">
-                        <div className="pt-1 text-gray-300 cursor-grab touch-none flex-shrink-0">
-                          <GripVertical className="size-5" />
-                        </div>
-                        <div className="flex-1">
-                          <Input 
-                            type="text" 
-                            value={opcion.nombre}
-                            onChange={(e) => updateOption(opcion.id, "nombre", e.target.value)}
-                            placeholder="Nombre de la opción (Ej. Salsa Verde)"
-                            className="rounded-lg border-borderInput text-terciaryText bg-backgroundInput focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-blue-400/90 focus-visible:border-blue-400/90"
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
+                      <SortableContext items={opciones.map(o => o.id)} strategy={verticalListSortingStrategy}>
+                        {opciones.map((opcion) => (
+                          <SortableOpcionItem 
+                            key={opcion.id} 
+                            opcion={opcion} 
+                            updateOption={updateOption} 
+                            handleRemoveOption={handleRemoveOption} 
+                            isOnlyOne={opciones.length === 1} 
                           />
-                        </div>
-                        <div className="w-32 relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secundaryText text-sm font-medium z-10">$</span>
-                          <Input 
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={opcion.precio_extra}
-                            onChange={(e) => updateOption(opcion.id, "precio_extra", e.target.value)}
-                            placeholder="0.00"
-                            className="rounded-lg border-borderInput text-terciaryText bg-backgroundInput focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-blue-400/90 focus-visible:border-blue-400/90 pl-7"
-                          />
-                        </div>
-                        <button 
-                          type="button"
-                          onClick={() => handleRemoveOption(opcion.id)}
-                          className={`p-2 rounded-lg transition-colors focus:outline-none flex-shrink-0 ${opciones.length === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-red-400 hover:text-red-500 hover:bg-red-50'}`}
-                          disabled={opciones.length === 1}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
-                    ))}
+                        ))}
+                      </SortableContext>
+                    </DndContext>
                   </div>
 
                   <button 

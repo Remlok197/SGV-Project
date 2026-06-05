@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from "@heroui/react";
 import { X, Minus, Plus } from "lucide-react";
-import { orderItemClientSchema } from "../../../../schemas/orderSchema";
+import { orderItemClientSchema } from "../../../schemas/orderSchema";
 
 export default function ProductOptionsModal({ isOpen, onOpenChange, product, onAdd }) {
     const [quantity, setQuantity] = useState(1);

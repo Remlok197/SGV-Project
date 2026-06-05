@@ -9,6 +9,7 @@ class OpcionBase(BaseModel):
     nombre: str
     precio_extra: float = 0.0
     disponible: bool = True
+    orden: int = 0
 
 
 class OpcionCreate(OpcionBase):
@@ -19,6 +20,7 @@ class OpcionUpdate(BaseModel):
     nombre: Optional[str] = None
     precio_extra: Optional[float] = None
     disponible: Optional[bool] = None
+    orden: Optional[int] = None
 
 
 class OpcionResponse(OpcionBase):
@@ -45,6 +47,7 @@ class GrupoModificadorBase(BaseModel):
     nombre: str
     minimo: int = 0
     maximo: Optional[int] = None
+    orden: int = 0
     categoria_id: int
 
 
@@ -70,6 +73,11 @@ class GrupoModificadorUpdate(BaseModel):
     nombre: Optional[str] = None
     minimo: Optional[int] = None
     maximo: Optional[int] = None
+    orden: Optional[int] = None
+
+class ReorderItem(BaseModel):
+    id: int
+    orden: int
 
 
 # --- CATEGORÍAS ---
