@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Modal } from "@heroui/react";
 import { X, Minus, Plus } from "lucide-react";
+import { orderItemClientSchema } from "../../../../schemas/orderSchema";
 
 export default function ProductOptionsModal({ isOpen, onOpenChange, product, onAdd }) {
     const [quantity, setQuantity] = useState(1);
     
     // Estado inicial mockeado para los seleccionados
     const [selectedOptions, setSelectedOptions] = useState({
-        "Carne": "Bistec",
+        "Carne": ["Bistec"],
         "Salsa": [],
         "Verdura": []
     });
@@ -35,16 +36,28 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
     };
 
     const handleAdd = () => {
+        const payload = { quantity, options: selectedOptions };
+        const validation = orderItemClientSchema.safeParse(payload);
+        
+        if (!validation.success) {
+            // Mostrar error usando alert (o una notificación)
+            alert(validation.error.issues[0].message);
+            return;
+        }
+
         if (onAdd) {
-            onAdd({ product, quantity, options: selectedOptions });
+            onAdd({ product, quantity: validation.data.quantity, options: validation.data.options });
         }
         onOpenChange(false);
         // Reset state after add
-        setTimeout(() => setQuantity(1), 300);
+        setTimeout(() => {
+            setQuantity(1);
+            setSelectedOptions({ "Carne": ["Bistec"], "Salsa": [], "Verdura": [] });
+        }, 300);
     };
 
     // Obtenemos el precio base numérico para calcular el total
-    const basePrice = product.price ? parseFloat(product.price.toString().replace(/[^0-9.]/g, '')) : 17.00;
+    const basePrice = typeof product.price === 'number' ? product.price : 17.00;
     const totalPrice = (basePrice * quantity).toFixed(2);
 
     return (
@@ -69,7 +82,7 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
                             
                             <div className="flex flex-col justify-center">
                                 <h2 className="text-3xl font-bold text-primaryText leading-tight">{product.name}</h2>
-                                <p className="text-base font-medium text-secundaryText mt-1">Precio Base: <span className="font-bold">{product.price || '$17.00'}</span></p>
+                                <p className="text-base font-medium text-secundaryText mt-1">Precio Base: <span className="font-bold">{product.formattedPrice || '$17.00'}</span></p>
                             </div>
                         </div>
 
@@ -86,9 +99,9 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
                                     {['Bistec', 'Chorizo', 'Pastor', 'Costilla', 'Cabeza'].map(opt => (
                                         <button 
                                             key={opt}
-                                            onClick={() => toggleOption('Carne', opt, false)}
+                                            onClick={() => toggleOption('Carne', opt, true)}
                                             className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
-                                                isSelected('Carne', opt, false) 
+                                                isSelected('Carne', opt, true) 
                                                     ? 'bg-primaryAction text-white border-primaryAction' 
                                                     : 'bg-white text-secundaryText border-borderInput hover:border-gray-300'
                                             }`}
@@ -97,14 +110,14 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
                                         </button>
                                     ))}
                                     <button 
-                                        onClick={() => toggleOption('Carne', 'Tripa', false)}
+                                        onClick={() => toggleOption('Carne', 'Tripa', true)}
                                         className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
-                                            isSelected('Carne', 'Tripa', false) 
+                                            isSelected('Carne', 'Tripa', true) 
                                                 ? 'bg-primaryAction text-white border-primaryAction' 
                                                 : 'bg-white text-secundaryText border-borderInput hover:border-gray-300'
                                         }`}
                                     >
-                                        Tripa <span className={`text-xs font-normal ml-1 ${isSelected('Carne', 'Tripa', false) ? 'text-white/80' : 'text-secundaryText/60'}`}>+$2.00</span>
+                                        Tripa <span className={`text-xs font-normal ml-1 ${isSelected('Carne', 'Tripa', true) ? 'text-white/80' : 'text-secundaryText/60'}`}>+$2.00</span>
                                     </button>
                                 </div>
                             </div>
@@ -159,7 +172,7 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, onA
                         <div className="p-6 pt-4 flex gap-4 items-center shrink-0">
                             <div className="flex items-center rounded-lg overflow-hidden shrink-0 h-10">
                                 <button 
-                                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                    onClick={() => setQuantity(quantity - 1)}
                                     className="w-10 h-full bg-primaryAction text-white flex items-center justify-center hover:bg-primaryAction/90 transition-colors"
                                 >
                                     <Minus className="size-4" />

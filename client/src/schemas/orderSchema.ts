@@ -13,6 +13,20 @@ export const ordenCreateSchema = z.object({
   detalles: z.array(detalleOrdenCreateSchema)
 });
 
+// Client-side schema for adding items to cart in ProductOptionsModal
+export const orderItemClientSchema = z.object({
+  quantity: z.number().int().min(1, "La cantidad debe ser al menos 1"),
+  options: z.object({
+      "Carne": z.union([z.string(), z.array(z.string())])
+          .transform(val => Array.isArray(val) ? val : [val])
+          .refine(val => val.length >= 1 && val.length <= 2, {
+              message: "Debes seleccionar entre 1 y 2 opciones de Carne"
+          }),
+      "Salsa": z.array(z.string()).optional(),
+      "Verdura": z.array(z.string()).optional()
+  }).optional()
+});
+
 export type DetalleOrdenCreate = z.infer<typeof detalleOrdenCreateSchema>;
 export type OrdenCreate = z.infer<typeof ordenCreateSchema>;
 
