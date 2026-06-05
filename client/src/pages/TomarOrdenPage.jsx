@@ -5,11 +5,13 @@ import Tab from "./productos/components/tabs/Tab";
 import { Utensils, Coffee, LayoutGrid } from "lucide-react";
 import ProductGrid from "./productos/components/cards/ProductGrid";
 import MenuProductCard from "./tomarOrden/components/MenuProductCard";
+import ProductOptionsModal from "./tomarOrden/components/ProductOptionsModal";
 import { useProducts } from "../hooks/useProducts";
 import { ReactSVG } from "react-svg";
 
 export default function TomarOrdenPage() {
     const [activeCategory, setActiveCategory] = useState("Todos");
+    const [selectedProduct, setSelectedProduct] = useState(null);
     const { catalog, loading, error } = useProducts();
 
     if (loading) return <div className="flex justify-center items-center h-full w-full"><p className="text-secundaryText font-medium">Cargando menú...</p></div>;
@@ -77,7 +79,7 @@ export default function TomarOrdenPage() {
                                         name={product.name}
                                         price={product.formattedPrice}
                                         imageUrl={product.imageUrl}
-                                        onClick={() => {}}
+                                        onClick={() => setSelectedProduct(product)}
                                     />
                                 ))}
                         </div>
@@ -132,6 +134,17 @@ export default function TomarOrdenPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de opciones de producto */}
+            <ProductOptionsModal 
+                isOpen={!!selectedProduct} 
+                onOpenChange={(isOpen) => !isOpen && setSelectedProduct(null)} 
+                product={selectedProduct}
+                onAdd={(data) => {
+                    console.log("Producto añadido:", data);
+                    // Aquí se manejaría la adición a la orden
+                }}
+            />
         </div>
     );
 }
