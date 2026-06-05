@@ -47,6 +47,7 @@ class GrupoModificador(Base):
     nombre = Column(String, nullable=False) 
     minimo = Column(Integer, default=0)     
     maximo = Column(Integer, nullable=True)
+    orden = Column(Integer, default=0)
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
 
     categoria = relationship("Categoria", back_populates="grupos_modificadores")
@@ -59,6 +60,7 @@ class OpcionModificador(Base):
     nombre = Column(String, nullable=False)
     precio_extra = Column(Float, default=0.0)
     disponible = Column(Boolean, default=True)
+    orden = Column(Integer, default=0)
 
     grupo = relationship("GrupoModificador", back_populates="opciones")
     
