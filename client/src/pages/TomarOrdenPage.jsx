@@ -2,15 +2,53 @@ import React, { useState } from 'react';
 import PageHeader from "../components/shared/PageHeader";
 import TabGroup from "./productos/components/tabs/TabGroup";
 import Tab from "./productos/components/tabs/Tab";
-import { Utensils, Coffee, LayoutGrid } from "lucide-react";
+import { Utensils, Coffee, LayoutGrid, Trash2, Minus, Plus } from "lucide-react";
 import ProductGrid from "./productos/components/cards/ProductGrid";
 import MenuProductCard from "./tomarOrden/components/MenuProductCard";
+import ProductOptionsModal from "./tomarOrden/components/ProductOptionsModal";
 import { useProducts } from "../hooks/useProducts";
+import { useOrders } from "../hooks/useOrders";
 import { ReactSVG } from "react-svg";
 
 export default function TomarOrdenPage() {
     const [activeCategory, setActiveCategory] = useState("Todos");
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [orderItems, setOrderItems] = useState([]);
     const { catalog, loading, error } = useProducts();
+    const { createOrder, loading: isCreatingOrder } = useOrders();
+
+    const handleCreateOrder = async () => {
+        if (orderItems.length === 0) return;
+        try {
+            await createOrder(orderItems, { tipo_pedido: "mostrador" });
+            setOrderItems([]);
+            alert("Orden creada exitosamente");
+        } catch (err) {
+            alert(err.message || "Hubo un error al crear la orden");
+        }
+    };
+
+    const handleCancelOrder = () => {
+        if (window.confirm("¿Estás seguro de que deseas cancelar la orden actual?")) {
+            setOrderItems([]);
+        }
+    };
+
+    const updateItemQuantity = (index, newQuantity) => {
+        if (newQuantity < 1) {
+            removeItem(index);
+            return;
+        }
+        setOrderItems(prev => {
+            const newItems = [...prev];
+            newItems[index] = { ...newItems[index], quantity: newQuantity };
+            return newItems;
+        });
+    };
+
+    const removeItem = (index) => {
+        setOrderItems(prev => prev.filter((_, i) => i !== index));
+    };
 
     if (loading) return <div className="flex justify-center items-center h-full w-full"><p className="text-secundaryText font-medium">Cargando menú...</p></div>;
     if (error) return <div className="flex justify-center items-center h-full w-full"><p className="text-red-500 font-medium">{error}</p></div>;
@@ -77,7 +115,7 @@ export default function TomarOrdenPage() {
                                         name={product.name}
                                         price={product.formattedPrice}
                                         imageUrl={product.imageUrl}
-                                        onClick={() => {}}
+                                        onClick={() => setSelectedProduct(product)}
                                     />
                                 ))}
                         </div>
@@ -94,44 +132,121 @@ export default function TomarOrdenPage() {
                     </div>
 
                     {/* Order Items List */}
-                    <div className="flex-1 overflow-y-auto flex flex-col gap-4">
-                        {/* Static mockup item 1 */}
-                        <div className="flex items-center gap-4">
-                            <div className="size-12 md:size-14 rounded-lg bg-gray-200 border border-gray-300 flex-shrink-0"></div>
-                            <div className="flex-1">
-                                <h3 className="font-bold text-primaryText text-sm">Taco de bistec</h3>
-                                <p className="text-primaryAction font-bold text-sm">$34.00</p>
+                    <div className="flex-1 overflow-y-auto flex flex-col">
+                        {orderItems.length === 0 ? (
+                            <div className="flex-1 flex items-center justify-center text-secundaryText/60 font-medium text-sm">
+                                No hay productos en la orden
                             </div>
-                            <span className="font-semibold text-primaryText">x2</span>
-                        </div>
-                        {/* Static mockup item 2 */}
-                        <div className="flex items-center gap-4">
-                            <div className="size-12 md:size-14 rounded-lg bg-gray-200 border border-gray-300 flex-shrink-0"></div>
-                            <div className="flex-1">
-                                <h3 className="font-bold text-primaryText text-sm">Torta de chorizo</h3>
-                                <p className="text-primaryAction font-bold text-sm">$30.00</p>
-                            </div>
-                            <span className="font-semibold text-primaryText">x1</span>
-                        </div>
+                        ) : (
+                            orderItems.map((item, index) => {
+                                const basePrice = item.product.price ? parseFloat(item.product.price.toString().replace(/[^0-9.]/g, '')) : 17.00;
+                                const itemTotal = basePrice * item.quantity;
+                                return (
+                                    <div key={index} className={`flex flex-col ${index !== orderItems.length - 1 ? 'border-b-2 border-borderInput/60 pb-4 mb-4' : 'pb-2'}`}>
+                                        {/* Top Row: Info and Counter */}
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex gap-4">
+                                                <div className="size-12 md:size-14 rounded-lg bg-gray-200 border border-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                                    {item.product.imageUrl ? (
+                                                        <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-[10px] text-gray-400 font-medium">IMG</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col justify-start pt-1">
+                                                    <h3 className="font-bold text-primaryText text-lg leading-none">{item.product.name}</h3>
+                                                    <p className="text-secundaryText font-medium text-base mt-1.5">${basePrice.toFixed(2)} c/u</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end justify-start">
+                                                <button 
+                                                    onClick={() => removeItem(index)}
+                                                    className="text-gray-400 hover:text-red-500 transition-colors shrink-0 mt-2"
+                                                >
+                                                    <Trash2 className="size-4 md:size-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Bottom Row: Pills and Counter/Total */}
+                                        <div className="flex justify-between items-end">
+                                            <div className="flex flex-wrap gap-2 flex-1 pr-4">
+                                                {item.options && Object.entries(item.options).flatMap(([cat, val]) => {
+                                                    if (!val || val.length === 0) return [];
+                                                    const valArray = Array.isArray(val) ? val : [val];
+                                                    return valArray.map((v, i) => (
+                                                        <span key={`${cat}-${i}`} className="bg-gray-50 text-secundaryText font-medium text-[12px] px-2.5 py-1 rounded-md border-[1.5px] border-dashed border-gray-300/80">
+                                                            {v}
+                                                        </span>
+                                                    ));
+                                                })}
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2.5">
+                                                <div className="flex items-center gap-2 scale-90 origin-right">
+                                                    <button 
+                                                        onClick={() => updateItemQuantity(index, item.quantity - 1)}
+                                                        className="size-6 md:size-7 rounded bg-primaryAction flex items-center justify-center hover:bg-primaryAction/90 text-white transition-colors"
+                                                    >
+                                                        <Minus className="size-3 md:size-4" />
+                                                    </button>
+                                                    <span className="font-bold text-sm md:text-base text-primaryText w-4 text-center">{item.quantity}</span>
+                                                    <button 
+                                                        onClick={() => updateItemQuantity(index, item.quantity + 1)}
+                                                        className="size-6 md:size-7 rounded bg-primaryAction flex items-center justify-center hover:bg-primaryAction/90 text-white transition-colors"
+                                                    >
+                                                        <Plus className="size-3 md:size-4" />
+                                                    </button>
+                                                </div>
+                                                <span className="font-bold text-primaryText text-sm md:text-base leading-none">${itemTotal.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
 
                     {/* Order Summary & Actions */}
                     <div className="mt-6 pt-6 border-t border-secundaryText/20">
                         <div className="flex justify-between items-center mb-6">
                             <span className="font-bold text-primaryText text-base md:text-lg">Total:</span>
-                            <span className="font-bold text-primaryText text-base md:text-lg">$64.00</span>
+                            <span className="font-bold text-primaryText text-base md:text-lg">
+                                ${orderItems.reduce((acc, item) => {
+                                    const bp = item.product.price ? parseFloat(item.product.price.toString().replace(/[^0-9.]/g, '')) : 17.00;
+                                    return acc + (bp * item.quantity);
+                                }, 0).toFixed(2)}
+                            </span>
                         </div>
                         <div className="flex gap-4">
-                            <button className="flex-1 py-2.5 md:py-3 rounded-xl border border-red-500 text-red-500 font-bold hover:bg-red-50 transition-colors text-sm md:text-base">
+                            <button 
+                                onClick={handleCancelOrder}
+                                disabled={orderItems.length === 0 || isCreatingOrder}
+                                className="flex-1 py-2 rounded-xl border border-red-500 text-red-500 font-bold hover:bg-red-50 transition-colors text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
                                 CANCELAR
                             </button>
-                            <button className="flex-1 py-2.5 md:py-3 rounded-xl bg-primaryAction text-white font-bold hover:bg-primaryAction/90 transition-colors shadow-md shadow-primaryAction/20 text-sm md:text-base">
-                                COBRAR
+                            <button 
+                                onClick={handleCreateOrder}
+                                disabled={orderItems.length === 0 || isCreatingOrder}
+                                className="flex-1 py-2 rounded-xl bg-primaryAction text-white font-bold hover:bg-primaryAction/90 transition-colors shadow-md shadow-primaryAction/20 text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isCreatingOrder ? 'COBRANDO...' : 'COBRAR'}
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Modal de opciones de producto */}
+            <ProductOptionsModal 
+                isOpen={!!selectedProduct} 
+                onOpenChange={(isOpen) => !isOpen && setSelectedProduct(null)} 
+                product={selectedProduct}
+                onAdd={(data) => {
+                    setOrderItems(prev => [...prev, data]);
+                    setSelectedProduct(null);
+                }}
+            />
         </div>
     );
 }

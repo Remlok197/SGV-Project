@@ -189,7 +189,6 @@ class UsuarioCreate(BaseModel):
 class DetalleOrdenCreate(BaseModel):
     id_producto: int
     cantidad: int
-    subtotal: float
     opciones: List[int] = [] # Arreglo de IDs
 
 class DetalleOrdenResponse(BaseModel):
