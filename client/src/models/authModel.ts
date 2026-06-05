@@ -20,8 +20,7 @@ export interface UserSession {
     userId: number;
     userName: string;
     userRole: string;
-    headerDate: string;
-    headerTime: string;
+    serverTimeOffset: number;
 }
 
 export interface LoginCredentials {
