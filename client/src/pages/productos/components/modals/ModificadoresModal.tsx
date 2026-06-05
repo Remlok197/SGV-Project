@@ -70,14 +70,17 @@ export default function ModificadoresModal({ isOpen, onOpenChange, categorias }:
       const data = await res.json();
       
       // Traducimos el JSON del backend al formato visual de Fabian
-      const mappedData = data.map((mod: any) => ({
-        id: mod.id,
-        name: mod.nombre,
-        options: mod.opciones.map((o: any) => o.nombre).join(", ") || "Sin opciones",
-        rules: mod.maximo ? `Mín ${mod.minimo} / Max ${mod.maximo}` : (mod.minimo === 0 ? "Opcional / Sin límite" : `Mín ${mod.minimo} / Sin límite`),
-        category: "Personalizado",
-        raw: mod // Guardamos el JSON crudo para la edición
-      }));
+      const mappedData = data.map((mod: any) => {
+        const catName = categorias.find(c => c.id.toString() === mod.categoria_id?.toString())?.name || "Personalizado";
+        return {
+          id: mod.id,
+          name: mod.nombre,
+          options: mod.opciones.map((o: any) => o.nombre).join(", ") || "Sin opciones",
+          rules: mod.maximo ? `Mín ${mod.minimo} / Max ${mod.maximo}` : (mod.minimo === 0 ? "Opcional / Sin límite" : `Mín ${mod.minimo} / Sin límite`),
+          category: catName,
+          raw: mod // Guardamos el JSON crudo para la edición
+        };
+      });
       
       setModificadores(mappedData);
     } catch (error) {

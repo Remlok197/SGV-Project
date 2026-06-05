@@ -7,6 +7,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { z } from "zod";
 import { FormTextField } from "../form/FormTextField";
+import { FormSelect } from "../form/FormSelectField";
 import { FieldLabel } from "../../../../components/ui/field";
 import { Input } from "../../../../components/ui/input";
 
@@ -23,6 +24,8 @@ function SortableOpcionItem({ opcion, updateOption, handleRemoveOption, isOnlyOn
     transition,
     zIndex: isDragging ? 10 : 1,
   };
+
+  const isDisabled = isOnlyOne || !opcion.nombre.trim();
 
   return (
     <div ref={setNodeRef} style={style} className={`flex items-center gap-3 bg-white ${isDragging ? "opacity-50 relative" : ""}`}>
@@ -53,8 +56,8 @@ function SortableOpcionItem({ opcion, updateOption, handleRemoveOption, isOnlyOn
       <button 
         type="button"
         onClick={() => handleRemoveOption(opcion.id)}
-        className={`p-2 rounded-lg transition-colors focus:outline-none flex-shrink-0 ${isOnlyOne ? 'text-gray-300 cursor-not-allowed' : 'text-red-400 hover:text-red-500 hover:bg-red-50'}`}
-        disabled={isOnlyOne}
+        className={`p-2 rounded-lg transition-colors focus:outline-none flex-shrink-0 ${isDisabled ? 'text-gray-300 cursor-not-allowed' : 'text-red-400 hover:text-red-500 hover:bg-red-50'}`}
+        disabled={isDisabled}
       >
         <Trash2 className="size-4" />
       </button>
@@ -74,9 +77,11 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
   const [opciones, setOpciones] = useState<Opcion[]>([
     { id: "1", nombre: "", precio_extra: "0.00" }
   ]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   React.useEffect(() => {
     if (isOpen) {
+      setFormErrors({});
       if (initialData && initialData.opciones && initialData.opciones.length > 0) {
         setOpciones(initialData.opciones.map((o: any) => ({
           id: o.id.toString(),
@@ -119,6 +124,12 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
 
   const updateOption = (id: string, field: keyof Opcion, value: string) => {
     setOpciones(opciones.map(o => o.id === id ? { ...o, [field]: value } : o));
+    if (field === 'nombre' && formErrors.opciones) {
+      setFormErrors(prev => {
+        const { opciones: _, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
   const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
@@ -129,7 +140,23 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
     const maximo = formData.get("maximo") as string;
     const categoriaId = formData.get("categoria_id") as string;
 
-    if (!nombre || !nombre.trim()) return; // Valida que tenga nombre
+    const newErrors: Record<string, string> = {};
+    if (!nombre || !nombre.trim()) newErrors.nombre = "El nombre del modificador es obligatorio";
+    if (!categoriaId) newErrors.categoria_id = "Selecciona una categoría";
+    
+    const emptyOpciones = opciones.filter(o => o.nombre.trim() === "");
+    
+    if (opciones.length === 1 && emptyOpciones.length === 1) {
+      newErrors.opciones = "Debe haber al menos una opción asignada";
+    } else if (emptyOpciones.length > 0) {
+      newErrors.opciones = "Todas las opciones deben tener un nombre";
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setFormErrors(newErrors);
+      return;
+    }
+    setFormErrors({});
     
     onSave({
       nombre,
@@ -150,7 +177,7 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
   };
 
   // Esquemas de validación simples para los FormTextField
-  const stringSchema = z.string().min(1, "Requerido");
+  const stringSchema = z.string().min(1, "El nombre del modificador es obligatorio");
   const numberSchema = z.string().regex(/^\d*$/, "Debe ser un número");
 
   return (
@@ -178,27 +205,23 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
                     defaultValue={initialData?.nombre || ""}
                     schemaField={stringSchema}
                     labelClassName="text-lg font-bold text-primaryText"
+                    errorMessage={formErrors.nombre}
                   />
 
                   {/* Categoría */}
-                  <div className="flex flex-col gap-1">
-                    <FieldLabel className="text-lg font-bold text-primaryText mb-1">
-                      Categoría
-                    </FieldLabel>
-                    <select
-                      name="categoria_id"
-                      required
-                      defaultValue={initialData?.categoria_id || ""}
-                      className="h-11 px-3 rounded-lg border border-borderInput text-terciaryText bg-backgroundInput focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-blue-400/90 focus-visible:outline-none"
-                    >
-                      <option value="">Selecciona una categoría...</option>
-                      {(categorias || []).map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <FormSelect
+                    name="categoria_id"
+                    label="Categoría"
+                    required
+                    schemaField={z.string().min(1, "Selecciona una categoría")}
+                    defaultValue={initialData?.categoria_id?.toString() || ""}
+                    errorMessage={formErrors.categoria_id}
+                    labelClassName="text-lg font-bold text-primaryText"
+                    options={[
+                      ...(initialData?.categoria_id ? [] : [{ value: "", label: "Selecciona una categoría...", disabled: true, hidden: true }]),
+                      ...(categorias || []).map(cat => ({ value: cat.id.toString(), label: cat.name }))
+                    ]}
+                  />
 
                   {/* Reglas de selección */}
                   <div className="grid grid-cols-2 gap-6">
@@ -226,7 +249,14 @@ export default function NuevoModificadorModal({ isOpen, onOpenChange, onSave, ca
 
                 {/* Opciones */}
                 <div className="flex flex-col gap-4">
-                  <h3 className="text-lg font-bold text-primaryText">Opciones</h3>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-primaryText">Opciones</h3>
+                    {formErrors.opciones && (
+                      <span className="text-[13px] font-medium text-destructive animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                        {formErrors.opciones}
+                      </span>
+                    )}
+                  </div>
                   
                   <div className="flex flex-col gap-3">
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>

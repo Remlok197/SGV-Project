@@ -1,12 +1,12 @@
 import { z } from "zod";
 
 export const baseProductSchema = z.object({
-  name: z.string().min(1, { error: "El nombre del producto es obligatorio" }),
-  price: z.coerce.number().positive({ error: "El precio debe ser mayor a $0.00" }),
-  categoryId: z.string().min(1, { error: "Selecciona una categoría" }),
+  name: z.string().min(1, { message: "El nombre del producto es obligatorio" }),
+  price: z.coerce.number().positive({ message: "El precio debe ser mayor a $0.00" }),
+  categoryId: z.string().min(1, { message: "Selecciona una categoría" }),
   
   units: z.enum(["pieza", "litros"], {
-    error: "Selecciona una unidad válida"
+    errorMap: () => ({ message: "Selecciona una unidad válida" })
   }),
   
   modifiers: z.string().optional(),

@@ -97,16 +97,17 @@ export default function EditableCategoryContent({ category, onSave, onDelete }) 
                 placeholder="Nombre..."
             />
             
-            <button
-                type="button"
-                className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 hover:bg-red-50 p-1 rounded-md transition-all flex-shrink-0"
+            <div
+                role="button"
+                className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 hover:bg-red-50 p-1 rounded-md transition-all flex-shrink-0 cursor-pointer"
                 onClick={(e) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     if (onDelete) onDelete(category.id);
                 }}
             >
                 <X className="size-3.5" />
-            </button>
+            </div>
         </div>
     );
 }

@@ -25,6 +25,7 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
   const [checkedMods, setCheckedMods] = useState<number[]>([]);
   const [modificadores, setModificadores] = useState<any[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Cerrar el dropdown si se hace click afuera
@@ -116,9 +117,17 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
     const finalValidation = productFormSchema.safeParse(rawData);
 
     if (!finalValidation.success) {
+      const newErrors: Record<string, string> = {};
+      finalValidation.error.issues.forEach(issue => {
+        if (issue.path[0]) {
+          newErrors[issue.path[0].toString()] = issue.message;
+        }
+      });
+      setFormErrors(newErrors);
       console.error("Errores en el formulario:", finalValidation.error.format());
       return;
     }
+    setFormErrors({});
 
     try {
       setIsSubmitting(true);
@@ -159,8 +168,9 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
   console.log("🔍 Categoria Seleccionada:", selectedCategoryId, "| Modificadores en estado:", modificadores);
 
   return (
-    <Form className="flex flex-col h-full w-full" onSubmit={onSubmit}>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-6 w-full">
+    <>
+      <Form className="flex flex-col h-full w-full" onSubmit={onSubmit}>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-6 w-full">
 
         <ImageUpload defaultImageUrl={product?.imageUrl} />
 
@@ -171,6 +181,7 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
           placeholder="Introduce el nombre"
           schemaField={productFormSchema.shape.name}
           defaultValue={product?.name}
+          errorMessage={formErrors.name}
         />
 
         {/* PRECIO */}
@@ -183,17 +194,21 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
           startContent="$"
           schemaField={productFormSchema.shape.price}
           defaultValue={product?.price?.toString()}
+          errorMessage={formErrors.price}
         />
 
         {/* CATEGORÍA */}
         <FormSelect
           name="categoryId"
           label="Categoría"
+          required
+          schemaField={productFormSchema.shape.categoryId}
           defaultValue={selectedCategoryId || ""}
+          errorMessage={formErrors.categoryId}
           onChange={(e: any) => setSelectedCategoryId(e.target.value)}
           options={[
-            { value: "", label: "Selecciona una categoría" },
-            ...categories.filter(cat => cat.name !== "Todos").map(cat => ({ value: String(cat.id), label: cat.name }))
+            ...(selectedCategoryId ? [] : [{ value: "", label: "Selecciona una categoría", disabled: true, hidden: true }]),
+            ...Array.from(new Map(categories.filter(cat => cat.name !== "Todos").map(cat => [cat.name, cat])).values()).map(cat => ({ value: String(cat.id), label: cat.name }))
           ]}
         />
 
@@ -201,7 +216,10 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
         <FormSelect
           name="units"
           label="Unidades"
-          defaultValue={product?.units}
+          required
+          schemaField={productFormSchema.shape.units}
+          defaultValue={product?.unidades || "pieza"}
+          errorMessage={formErrors.units}
           options={[
             { value: "pieza", label: "Pieza" },
             { value: "litros", label: "Litros" },
@@ -226,8 +244,12 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
           </div>
           
           {(() => {
+            const todosCatId = categories.find(c => c.name === "Todos")?.id?.toString();
             const filteredMods = selectedCategoryId 
-              ? modificadores.filter(m => m.categoria_id?.toString() === selectedCategoryId.toString())
+              ? modificadores.filter(m => 
+                  m.categoria_id?.toString() === selectedCategoryId.toString() || 
+                  (todosCatId && m.categoria_id?.toString() === todosCatId)
+                )
               : [];
 
             return (
@@ -236,7 +258,7 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
                   type="button"
                   disabled={!selectedCategoryId || filteredMods.length === 0}
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="w-full flex items-center justify-between bg-backgroundInput border border-borderInput hover:bg-backgroundInput/80 h-10 px-3 rounded-lg text-sm text-terciaryText transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primaryAction/50 disabled:opacity-60 disabled:hover:bg-backgroundInput disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-between bg-backgroundInput border border-borderInput hover:bg-backgroundInput/80 h-10 px-3 rounded-lg text-sm text-terciaryText transition-colors outline-none focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-blue-400/90 focus-visible:border-blue-400/90 disabled:opacity-60 disabled:hover:bg-backgroundInput disabled:cursor-not-allowed"
                 >
                   <span className={`truncate flex-1 text-left pr-2 ${checkedMods.length > 0 && selectedCategoryId && filteredMods.length > 0 ? "text-terciaryText" : ""}`}>
                     {!selectedCategoryId 
@@ -266,7 +288,7 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
                                 type="checkbox" 
                                 checked={catMods.length > 0 && catMods.every(mod => checkedMods.includes(mod.id))}
                                 onChange={() => handleToggleCategory(catMods.map(m => m.id))}
-                                className="w-3.5 h-3.5 rounded border-borderInput text-primaryAction focus:ring-primaryAction/50 cursor-pointer transition-all"
+                                className="w-3.5 h-3.5 rounded border-borderInput text-primaryAction focus-visible:ring-2 focus-visible:ring-blue-400/90 cursor-pointer transition-all"
                               />
                             </label>
                             <span className="text-[11px] font-bold text-primaryAction uppercase tracking-wider">{cat.name}</span>
@@ -278,7 +300,7 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
                                   type="checkbox" 
                                   checked={checkedMods.includes(mod.id)}
                                   onChange={() => handleToggleMod(mod.id)}
-                                  className="w-4 h-4 rounded border-borderInput text-primaryAction focus:ring-primaryAction/50 cursor-pointer transition-all"
+                                  className="w-4 h-4 rounded border-borderInput text-primaryAction focus-visible:ring-2 focus-visible:ring-blue-400/90 cursor-pointer transition-all"
                                 />
                                 <span className="text-sm font-medium text-primaryText group-hover:text-primaryText/80 transition-colors">
                                   {mod.nombre}
@@ -328,12 +350,13 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
           {isSubmitting ? 'GUARDANDO...' : 'GUARDAR'}
         </Button>
       </div>
+      </Form>
 
       <ModificadoresModal 
-  isOpen={isModalOpen} 
-  onOpenChange={setIsModalOpen} 
-  categorias={categories} 
-/>
-    </Form>
+        isOpen={isModalOpen} 
+        onOpenChange={setIsModalOpen} 
+        categorias={categories} 
+      />
+    </>
   );
 }

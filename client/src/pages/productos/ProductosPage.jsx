@@ -216,7 +216,11 @@ export default function ProductosPage() {
                     <div className="-mx-13 md:-mx-20 lg:-mx-22">
                         <CategoryDivider
                             categoryName={activeCategory}
-                            itemCount={catalog.totalItems || 0}
+                            itemCount={
+                                activeCategory === "Todos" 
+                                    ? catalog.products.length 
+                                    : catalog.products.filter(p => p.categoryId === catalog.categories.find(c => c.name === activeCategory)?.id).length
+                            }
                             leftLineClassName="w-[3.5rem] md:w-[5rem] lg:w-[5.5rem]"
                             titleClassName="text-base md:text-xl lg:text-2xl"
                             countClassName="text-sm md:text-base lg:text-lg ml-1 md:ml-1.5 lg:ml-2 "
