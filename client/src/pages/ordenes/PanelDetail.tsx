@@ -1,4 +1,5 @@
 import React from "react";
+import { imprimirTicket } from '../../utils/ticketPrinter';
 
 interface PanelDetailProps {
   orden: any;
@@ -50,7 +51,20 @@ export default function PanelDetail({ orden, onEntregar }: PanelDetailProps) {
         </div>
 
         <div className="flex gap-3">
-          <button className="flex-1 py-3 px-4 bg-white border-2 border-orange-400 text-orange-400 font-bold rounded-lg hover:bg-orange-50 transition-colors">
+         <button 
+            onClick={() => {
+              // Formateamos los detalles para que nuestro ticketPrinter los lea perfecto
+              const itemsImpresion = orden.detalles.map((item: any) => ({
+                nombre: item.nombre,
+                cantidad: item.cantidad,
+                // Multiplicamos para que salga el costo total de esos tacos en el ticket
+                precio_total: item.precio * item.cantidad 
+              }));
+              
+              imprimirTicket(itemsImpresion, orden.total, orden.id);
+            }}
+            className="flex-1 py-3 px-4 font-bold rounded-lg border-2 border-orange-500 text-orange-500 hover:bg-orange-50 transition-colors"
+          >
             IMPRIMIR
           </button>
           <button 

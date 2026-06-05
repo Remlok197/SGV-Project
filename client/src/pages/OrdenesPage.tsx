@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PanelLista from "./ordenes/PanelList";
 import PanelDetalle from "./ordenes/PanelDetail";
+import { imprimirTicket } from '../utils/ticketPrinter';
 
 export default function OrdenesPage() {
   const [ordenes, setOrdenes] = useState<any[]>([]);

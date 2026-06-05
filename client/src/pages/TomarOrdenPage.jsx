@@ -10,6 +10,7 @@ import { useProducts } from "../hooks/useProducts";
 import { useOrders } from "../hooks/useOrders";
 import { useCart } from "../hooks/useCart";
 import { ReactSVG } from "react-svg";
+import { imprimirTicket } from '../utils/ticketPrinter';
 
 export default function TomarOrdenPage() {
     const [activeCategory, setActiveCategory] = useState("Todos");
@@ -30,9 +31,11 @@ export default function TomarOrdenPage() {
     const handleCreateOrder = async () => {
         if (orderItems.length === 0) return;
         try {
+            // ¡HACK! Mandamos a imprimir el ticket justo antes de crear la orden
+            imprimirTicket(orderItems, total, "Nueva");
+
             await createOrder(orderItems, { tipo_pedido: "mostrador" });
             clearCart();
-            alert("Orden creada exitosamente");
         } catch (err) {
             alert(err.message || "Hubo un error al crear la orden");
         }
