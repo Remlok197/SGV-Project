@@ -10,15 +10,21 @@ import { useProducts } from "../hooks/useProducts";
 import { useOrders } from "../hooks/useOrders";
 import { useCart } from "../hooks/useCart";
 import { ReactSVG } from "react-svg";
+import { Modal } from "@heroui/react";
+import { X, Banknote, CreditCard } from "lucide-react";
 
 export default function TomarOrdenPage() {
     const [activeCategory, setActiveCategory] = useState("Todos");
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [editingItemIndex, setEditingItemIndex] = useState(null);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState("Efectivo");
     const { catalog, loading, error } = useProducts();
     const { createOrder, loading: isCreatingOrder } = useOrders();
     const { 
         orderItems, 
         addItem, 
+        updateItem,
         removeItem, 
         updateItemQuantity, 
         clearCart, 
@@ -27,11 +33,17 @@ export default function TomarOrdenPage() {
         total 
     } = useCart();
 
+    const handleEditItem = (index) => {
+        setEditingItemIndex(index);
+        setSelectedProduct(orderItems[index].product);
+    };
+
     const handleCreateOrder = async () => {
         if (orderItems.length === 0) return;
         try {
             await createOrder(orderItems, { tipo_pedido: "mostrador" });
             clearCart();
+            setIsPaymentModalOpen(false);
             alert("Orden creada exitosamente");
         } catch (err) {
             alert(err.message || "Hubo un error al crear la orden");
@@ -39,9 +51,9 @@ export default function TomarOrdenPage() {
     };
 
     const handleCancelOrder = () => {
-        if (window.confirm("¿Estás seguro de que deseas cancelar la orden actual?")) {
-            clearCart();
-        }
+        clearCart();
+        setEditingItemIndex(null);
+        setSelectedProduct(null);
     };
 
     if (loading) return <div className="flex justify-center items-center h-full w-full"><p className="text-secundaryText font-medium">Cargando menú...</p></div>;
@@ -139,7 +151,7 @@ export default function TomarOrdenPage() {
                                     <div key={index} className={`flex flex-col ${index !== orderItems.length - 1 ? 'border-b-2 border-borderInput/60 pb-4 mb-4' : 'pb-2'}`}>
                                         {/* Top Row: Info and Counter */}
                                         <div className="flex justify-between items-start">
-                                            <div className="flex gap-4">
+                                            <div className="flex gap-4 cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors flex-1" onClick={() => handleEditItem(index)}>
                                                 <div className="size-12 md:size-14 rounded-lg bg-gray-200 border border-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
                                                     {item.product.imageUrl ? (
                                                         <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
@@ -178,12 +190,27 @@ export default function TomarOrdenPage() {
                                             <div className="flex flex-col items-end gap-2.5">
                                                 <div className="flex items-center gap-2 scale-90 origin-right">
                                                     <button 
-                                                        onClick={() => updateItemQuantity(index, item.quantity - 1)}
+                                                        onClick={() => updateItemQuantity(index, Math.max(1, item.quantity - 1))}
                                                         className="size-6 md:size-7 rounded bg-primaryAction flex items-center justify-center hover:bg-primaryAction/90 text-white transition-colors"
                                                     >
                                                         <Minus className="size-3 md:size-4" />
                                                     </button>
-                                                    <span className="font-bold text-sm md:text-base text-primaryText w-4 text-center">{item.quantity}</span>
+                                                    <input 
+                                                        type="number"
+                                                        min="1"
+                                                        step="1"
+                                                        value={item.quantity}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val !== '') {
+                                                                const num = parseInt(val, 10);
+                                                                if (!isNaN(num) && num >= 1) {
+                                                                    updateItemQuantity(index, num);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="font-bold text-sm md:text-base text-primaryText w-6 md:w-8 text-center bg-transparent border-none outline-none m-0 [-moz-appearance:_textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                                                    />
                                                     <button 
                                                         onClick={() => updateItemQuantity(index, item.quantity + 1)}
                                                         className="size-6 md:size-7 rounded bg-primaryAction flex items-center justify-center hover:bg-primaryAction/90 text-white transition-colors"
@@ -217,11 +244,11 @@ export default function TomarOrdenPage() {
                                 CANCELAR
                             </button>
                             <button 
-                                onClick={handleCreateOrder}
+                                onClick={() => setIsPaymentModalOpen(true)}
                                 disabled={orderItems.length === 0 || isCreatingOrder}
                                 className="flex-1 py-2 rounded-xl bg-primaryAction text-white font-bold hover:bg-primaryAction/90 transition-colors shadow-md shadow-primaryAction/20 text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {isCreatingOrder ? 'COBRANDO...' : 'COBRAR'}
+                                COBRAR
                             </button>
                         </div>
                     </div>
@@ -231,13 +258,64 @@ export default function TomarOrdenPage() {
             {/* Modal de opciones de producto */}
             <ProductOptionsModal 
                 isOpen={!!selectedProduct} 
-                onOpenChange={(isOpen) => !isOpen && setSelectedProduct(null)} 
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) {
+                        setSelectedProduct(null);
+                        setEditingItemIndex(null);
+                    }
+                }} 
                 product={selectedProduct}
+                categoryName={selectedProduct ? catalog.categories.find(c => c.id === selectedProduct.categoryId)?.name : ''}
+                initialItem={editingItemIndex !== null ? orderItems[editingItemIndex] : null}
                 onAdd={(data) => {
-                    addItem(data);
+                    if (editingItemIndex !== null) {
+                        updateItem(editingItemIndex, data);
+                    } else {
+                        addItem(data);
+                    }
                     setSelectedProduct(null);
+                    setEditingItemIndex(null);
                 }}
             />
+
+            {/* Modal de Pago */}
+            <Modal isOpen={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+                <Modal.Backdrop className="bg-black/40 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <Modal.Container className="w-full max-w-md outline-none">
+                        <Modal.Dialog className="outline-none bg-white rounded-2xl w-full shadow-xl overflow-hidden flex flex-col p-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-primaryText">Confirmar Pago</h3>
+                                <Modal.CloseTrigger className="bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer transition-colors">
+                                    <X className="size-4" />
+                                </Modal.CloseTrigger>
+                            </div>
+                            
+                            <div className="mb-6 flex flex-col items-center">
+                                <p className="text-secundaryText text-sm mb-1">Total a cobrar</p>
+                                <p className="text-4xl font-bold text-primaryText">${total.toFixed(2)}</p>
+                            </div>
+
+                            <div className="flex gap-4 mb-6">
+                                <button 
+                                    onClick={() => setPaymentMethod('Efectivo')}
+                                    className={`flex-1 py-4 flex flex-col items-center gap-2 rounded-xl border-2 transition-colors ${paymentMethod === 'Efectivo' ? 'border-primaryAction bg-primaryAction/5 text-primaryAction' : 'border-gray-200 hover:border-gray-300 text-secundaryText'}`}
+                                >
+                                    <Banknote className="size-6" />
+                                    <span className="font-semibold text-sm">Efectivo</span>
+                                </button>
+                            </div>
+
+                            <button 
+                                onClick={handleCreateOrder}
+                                disabled={isCreatingOrder}
+                                className="w-full py-3.5 rounded-xl bg-primaryAction text-white font-bold hover:bg-primaryAction/90 transition-colors shadow-md text-base disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex justify-center items-center gap-2"
+                            >
+                                {isCreatingOrder ? 'PROCESANDO...' : `Confirmar pago e imprimir ticket`}
+                            </button>
+                        </Modal.Dialog>
+                    </Modal.Container>
+                </Modal.Backdrop>
+            </Modal>
         </div>
     );
 }
