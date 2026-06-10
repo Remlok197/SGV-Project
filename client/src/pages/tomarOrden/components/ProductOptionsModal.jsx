@@ -1,42 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from "@heroui/react";
 import { X, Minus, Plus } from "lucide-react";
-import { orderItemClientSchema } from "../../../schemas/orderSchema";
 
 export default function ProductOptionsModal({ isOpen, onOpenChange, product, categoryName, initialItem, onAdd }) {
     const [quantity, setQuantity] = useState(1);
     const [errorMsg, setErrorMsg] = useState('');
     
-    const [selectedOptions, setSelectedOptions] = useState({
-        "Carne": [],
-        "Salsa": [],
-        "Verdura": []
-    });
+    const [selectedOptions, setSelectedOptions] = useState({});
 
     useEffect(() => {
         if (isOpen) {
             if (initialItem) {
                 setQuantity(initialItem.quantity);
-                setSelectedOptions(initialItem.options || { "Carne": [], "Salsa": [], "Verdura": [] });
+                setSelectedOptions(initialItem.options || {});
             } else {
                 setQuantity(1);
-                setSelectedOptions({ "Carne": [], "Salsa": [], "Verdura": [] });
+                setSelectedOptions({});
             }
             setErrorMsg('');
         } else {
             setTimeout(() => {
                 setQuantity(1);
                 setErrorMsg('');
-                setSelectedOptions({ "Carne": [], "Salsa": [], "Verdura": [] });
+                setSelectedOptions({});
             }, 300);
         }
     }, [isOpen, initialItem]);
 
     if (!product) return null;
 
-    const toggleOption = (category, option, isMulti = true) => {
+    const modificadores = product?.modificadores || [];
+    const hasModifiers = modificadores.length > 0;
+
+    const toggleOption = (category, option, mod) => {
+        const isMulti = mod.maximo !== 1;
+        
         if (!isMulti) {
-            setSelectedOptions(prev => ({ ...prev, [category]: option }));
+            setSelectedOptions(prev => {
+                const current = prev[category] || [];
+                if (current.includes(option)) {
+                    if (mod.minimo === 0) {
+                        return { ...prev, [category]: [] };
+                    }
+                    return prev;
+                }
+                return { ...prev, [category]: [option] };
+            });
             return;
         }
 
@@ -46,8 +55,7 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, cat
                 return { ...prev, [category]: current.filter(o => o !== option) };
             }
             
-            // Límite de opciones para Carne
-            if (category === "Carne" && current.length >= 2) {
+            if (mod.maximo && current.length >= mod.maximo) {
                 return prev;
             }
 
@@ -55,25 +63,27 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, cat
         });
     };
 
-    const isSelected = (category, option, isMulti = true) => {
-        if (!isMulti) return selectedOptions[category] === option;
+    const isSelected = (category, option) => {
         return (selectedOptions[category] || []).includes(option);
     };
 
-    const hasModifiers = !['Bebidas', 'Postres', 'Cervezas'].includes(categoryName);
-
     const handleAdd = () => {
-        setErrorMsg(''); // clear previous error
+        setErrorMsg(''); 
         let finalOptions = {};
         
         if (hasModifiers) {
             finalOptions = selectedOptions;
-            const payload = { quantity, options: finalOptions };
-            const validation = orderItemClientSchema.safeParse(payload);
             
-            if (!validation.success) {
-                setErrorMsg(validation.error.issues[0].message);
-                return;
+            for (const mod of modificadores) {
+                const selected = finalOptions[mod.nombre] || [];
+                if (mod.minimo > 0 && selected.length < mod.minimo) {
+                    setErrorMsg(`Debes seleccionar al menos ${mod.minimo} opción(es) de ${mod.nombre}`);
+                    return;
+                }
+                if (mod.maximo > 0 && selected.length > mod.maximo) {
+                    setErrorMsg(`No puedes seleccionar más de ${mod.maximo} opción(es) de ${mod.nombre}`);
+                    return;
+                }
             }
         }
 
@@ -83,9 +93,24 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, cat
         onOpenChange(false);
     };
 
-    // Obtenemos el precio base numérico para calcular el total
     const basePrice = typeof product.price === 'number' ? product.price : 17.00;
-    const surcharge = hasModifiers && (selectedOptions["Carne"] || []).includes("Tripa") ? 2.00 : 0;
+    let surcharge = 0;
+    
+    if (hasModifiers) {
+        Object.entries(selectedOptions).forEach(([modName, selectedOpts]) => {
+            const mod = modificadores.find(m => m.nombre === modName);
+            if (mod && mod.opciones) {
+                const optArray = Array.isArray(selectedOpts) ? selectedOpts : [selectedOpts];
+                optArray.forEach(optName => {
+                    const opt = mod.opciones.find(o => o.nombre === optName);
+                    if (opt && typeof opt.precio_extra === 'number') {
+                        surcharge += opt.precio_extra;
+                    }
+                });
+            }
+        });
+    }
+
     const finalPricePerUnit = basePrice + surcharge;
     const totalPrice = (finalPricePerUnit * quantity).toFixed(2);
 
@@ -131,83 +156,44 @@ export default function ProductOptionsModal({ isOpen, onOpenChange, product, cat
                                 </div>
                             )}
                             
-                            {hasModifiers && (
-                                <>
-                                    {/* Categoría: Carne */}
-                            <div className="mb-6 mt-4">
-                                <h3 className="text-lg font-bold text-primaryText">Carne</h3>
-                                <p className="text-xs text-secundaryText font-medium mb-3">Mín 1 / Max 2</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {['Bistec', 'Chorizo', 'Pastor', 'Costilla', 'Cabeza'].map(opt => (
-                                        <button 
-                                            key={opt}
-                                            onClick={() => toggleOption('Carne', opt, true)}
-                                            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
-                                                isSelected('Carne', opt, true) 
-                                                    ? 'bg-primaryAction text-white border-primaryAction' 
-                                                    : 'bg-white text-secundaryText border-borderInput hover:border-gray-300'
-                                            }`}
-                                        >
-                                            {opt}
-                                        </button>
-                                    ))}
-                                    <button 
-                                        onClick={() => toggleOption('Carne', 'Tripa', true)}
-                                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
-                                            isSelected('Carne', 'Tripa', true) 
-                                                ? 'bg-primaryAction text-white border-primaryAction' 
-                                                : 'bg-white text-secundaryText border-borderInput hover:border-gray-300'
-                                        }`}
-                                    >
-                                        Tripa <span className={`text-xs font-normal ml-1 ${isSelected('Carne', 'Tripa', true) ? 'text-white/80' : 'text-secundaryText/60'}`}>+$2.00</span>
-                                    </button>
-                                </div>
-                            </div>
+                            {hasModifiers && modificadores.map(mod => {
+                                const min = mod.minimo;
+                                const max = mod.maximo;
+                                let ruleText = "Opcional / Sin límite";
+                                if (min > 0 && !max) ruleText = `Mín ${min} / Sin límite`;
+                                else if (!min && max > 0) ruleText = `Opcional / Max ${max}`;
+                                else if (min > 0 && max > 0) ruleText = min === max ? `Debes elegir ${min}` : `Mín ${min} / Max ${max}`;
 
-                            {/* Categoría: Salsa */}
-                            <div className="mb-6">
-                                <h3 className="text-lg font-bold text-primaryText">Salsa</h3>
-                                <p className="text-xs text-secundaryText font-medium mb-3">Opcional / Sin límite</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {['Verde', 'Roja'].map(opt => (
-                                        <button 
-                                            key={opt}
-                                            onClick={() => toggleOption('Salsa', opt)}
-                                            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
-                                                isSelected('Salsa', opt) 
-                                                    ? 'bg-primaryAction text-white border-primaryAction' 
-                                                    : 'bg-white text-secundaryText border-borderInput hover:border-gray-300'
-                                            }`}
-                                        >
-                                            {opt}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Categoría: Verdura */}
-                            <div className="mb-2">
-                                <h3 className="text-lg font-bold text-primaryText">Verdura</h3>
-                                <p className="text-xs text-secundaryText font-medium mb-3">Opcional / Sin límite</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {['Cebolla', 'Cilantro'].map(opt => (
-                                        <button 
-                                            key={opt}
-                                            onClick={() => toggleOption('Verdura', opt)}
-                                            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
-                                                isSelected('Verdura', opt) 
-                                                    ? 'bg-primaryAction text-white border-primaryAction' 
-                                                    : 'bg-white text-secundaryText border-borderInput hover:border-gray-300'
-                                            }`}
-                                        >
-                                            {opt}
-                                        </button>
-                                    ))}
-                                </div>
+                                return (
+                                    <div key={mod.id} className="mb-6 mt-2 first:mt-4 last:mb-2">
+                                        <h3 className="text-lg font-bold text-primaryText">{mod.nombre}</h3>
+                                        <p className="text-xs text-secundaryText font-medium mb-3">{ruleText}</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {mod.opciones.map(opt => {
+                                                const selected = isSelected(mod.nombre, opt.nombre);
+                                                return (
+                                                    <button 
+                                                        key={opt.id}
+                                                        onClick={() => toggleOption(mod.nombre, opt.nombre, mod)}
+                                                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
+                                                            selected 
+                                                                ? 'bg-primaryAction text-white border-primaryAction' 
+                                                                : 'bg-white text-secundaryText border-borderInput hover:border-gray-300'
+                                                        }`}
+                                                    >
+                                                        {opt.nombre} 
+                                                        {opt.precio_extra > 0 && (
+                                                            <span className={`text-xs font-normal ml-1 ${selected ? 'text-white/80' : 'text-secundaryText/60'}`}>
+                                                                +${opt.precio_extra.toFixed(2)}
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </>
-                            )}
-
+                                );
+                            })}
                         </Modal.Body>
 
                         <hr className="mx-6 border-t border-borderInput/50" />
