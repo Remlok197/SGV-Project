@@ -29,6 +29,19 @@ export const orderService = {
             throw error; 
         }
     },
+    getNextOrderId: async (): Promise<number> => {
+        try {
+            const response = await fetch('/api/ordenes/next-id', { method: 'GET' });
+            if (!response.ok) {
+                throw new Error('Error al obtener el siguiente ID');
+            }
+            const data = await response.json();
+            return data.next_id;
+        } catch (error) {
+            console.error('Service Error - getNextOrderId:', error);
+            throw error;
+        }
+    },
 
     getOrders: async (estado?: string): Promise<OrdenResponse[]> => {
         try {

@@ -12,6 +12,21 @@ export function useOrders() {
             setLoading(true);
             setError(null);
             const newOrder = await orderService.createOrder(orderItems, options);
+            
+            // HACK: Como el backend requiere IDs y estamos en fase de mockup con strings, 
+            // guardamos las opciones localmente para que la pantalla de Ordenes pueda leerlas.
+            try {
+                const optionsMap = orderItems.map(item => {
+                    const opts = item.options || {};
+                    return {
+                        opciones: Object.values(opts).flat().filter(Boolean)
+                    };
+                });
+                localStorage.setItem(`orden_options_${newOrder.id}`, JSON.stringify(optionsMap));
+            } catch (e) {
+                console.error("No se pudieron guardar las opciones localmente", e);
+            }
+
             return newOrder;
         } catch (err) {
             if (err instanceof Error) {
@@ -23,6 +38,15 @@ export function useOrders() {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const getNextOrderId = async () => {
+        try {
+            return await orderService.getNextOrderId();
+        } catch (err) {
+            console.error("Error fetching next order ID", err);
+            return null;
         }
     };
 
@@ -87,6 +111,7 @@ export function useOrders() {
         loading,
         error,
         createOrder,
+        getNextOrderId,
         fetchOrders,
         updateOrderStatus,
         cancelOrder

@@ -596,6 +596,13 @@ def crear_orden(orden: schemas.OrdenCreate, db: Session = Depends(get_db)):
     
     return nueva_orden
 
+# GET para el ID de la siguiente orden
+@app.get("/api/ordenes/next-id")
+def obtener_siguiente_id(db: Session = Depends(get_db)):
+    from sqlalchemy import func
+    max_id = db.query(func.max(models.Orden.id)).scalar()
+    return {"next_id": (max_id or 0) + 1}
+
 # GET para listado de ordenes
 @app.get("/api/ordenes/", response_model=List[schemas.OrdenResponse])
 def obtener_ordenes(estado: Optional[str] = None, db: Session = Depends(get_db)):
