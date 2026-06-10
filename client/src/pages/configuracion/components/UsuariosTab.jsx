@@ -6,7 +6,9 @@ import UserAvatar from '../../../components/header/UserAvatar';
 
 const formatLastLogin = (dateString) => {
     if (!dateString) return 'Nunca';
-    const date = new Date(dateString);
+    // Append 'Z' to treat the naive datetime from the backend as UTC
+    const dateStrUtc = dateString.endsWith('Z') ? dateString : `${dateString}Z`;
+    const date = new Date(dateStrUtc);
     if (isNaN(date)) return 'Nunca';
     return date.toLocaleString('es-MX', { 
         day: 'numeric', month: 'short', 
