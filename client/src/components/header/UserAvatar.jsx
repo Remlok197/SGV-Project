@@ -1,14 +1,14 @@
 import { Avatar } from "@heroui/react";
 
-export default function UserAvatar({userName}){
+export default function UserAvatar({userName, className}){
 
     const bgColor = getAvatarColor(userName);
     const initials = getAvatarInitials(userName);
 
     return(
-        <Avatar className="text-background size-8 md:size-12 text-sm md:text-xl"
+        <Avatar className={className || "text-background size-8 md:size-12 text-sm md:text-xl"}
                 style={{ backgroundColor: bgColor }}>
-            {getAvatarInitials(userName)}
+            {initials}
         </Avatar>
     );
 }
