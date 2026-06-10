@@ -19,21 +19,36 @@ export default function OrdenesPage() {
       const data = await res.json();
       
       // 2. Mapeamos el JSON del backend para que encaje perfecto con las tarjetas de Fabian
-      const ordenesFormateadas = data.map((orden: any) => ({
-        id: orden.id,
-        mesa: orden.numero_mesa ? orden.numero_mesa.toString() : "N/A",
-        // Capitalizamos la primera letra del estado para que se vea bien en la etiqueta
-        estado: orden.estado.charAt(0).toUpperCase() + orden.estado.slice(1),
-        total: orden.total,
-        detalles: orden.detalles.map((det: any) => ({
-          id: det.id,
-          nombre: det.producto.nombre,
-          precio: det.producto.precio,
-          cantidad: det.cantidad,
-          // Si no tiene imagen, le ponemos el placeholder gris que tenías en el mockup
-          imagenUrl: det.producto.imagen_url || "https://via.placeholder.com/60"
-        }))
-      }));
+      const ordenesFormateadas = data.map((orden: any) => {
+        let localOptions: any = null;
+        try {
+            const stored = localStorage.getItem(`orden_options_${orden.id}`);
+            if (stored) localOptions = JSON.parse(stored);
+        } catch(e) {}
+
+        return {
+          id: orden.id,
+          mesa: orden.numero_mesa ? orden.numero_mesa.toString() : "N/A",
+          // Capitalizamos la primera letra del estado para que se vea bien en la etiqueta
+          estado: orden.estado.charAt(0).toUpperCase() + orden.estado.slice(1),
+          total: orden.total,
+          detalles: orden.detalles.map((det: any, index: number) => {
+            let ops = det.opciones ? det.opciones.map((o: any) => o.nombre) : [];
+            if (ops.length === 0 && localOptions && localOptions[index]) {
+                ops = localOptions[index].opciones || [];
+            }
+            return {
+              id: det.id,
+              nombre: det.producto.nombre,
+              precio: det.producto.precio,
+              cantidad: det.cantidad,
+              opciones: ops,
+              // Si no tiene imagen, le ponemos el placeholder gris que tenías en el mockup
+              imagenUrl: det.producto.imagen_url || "https://via.placeholder.com/60"
+            };
+          })
+        };
+      });
 
       // 3. Ordenamos de la más reciente a la más vieja para que las nuevas salgan hasta arriba
       const ordenesOrdenadas = ordenesFormateadas.sort((a: any, b: any) => b.id - a.id);
@@ -68,11 +83,11 @@ export default function OrdenesPage() {
   return (
     <div className="flex h-full w-full overflow-hidden bg-background">
       {/* Panel Izquierdo */}
-      <div className="flex-1 h-full flex flex-col pt-6 overflow-y-auto border-r border-secundaryText/20">
+      <div className="flex-1 h-full flex flex-col pt-6 border-r border-secundaryText/20">
         <div className="px-6 md:px-10 lg:px-11 flex-shrink-0 mb-6">
             <PageHeader title={"Órdenes Recientes"} />
         </div>
-        <div className="px-6 md:px-10 lg:px-11 pb-12">
+        <div className="px-6 md:px-10 lg:px-11 flex-1 min-h-0">
           <PanelLista 
             ordenes={ordenes} 
             // Si no hay orden seleccionada, mandamos 0 para que no truene
@@ -83,18 +98,20 @@ export default function OrdenesPage() {
       </div>
 
       {/* Panel Derecho */}
-      <div className="w-[400px] bg-white p-8 shadow-sm flex flex-col">
-        {/* Validamos que ya haya cargado una orden antes de pintar el ticket */}
-        {ordenSeleccionada ? (
-          <PanelDetalle 
-            orden={ordenSeleccionada} 
-            onEntregar={marcarComoEntregada} // Pasamos la función al panel derecho
-          />
-        ) : (
-          <div className="text-gray-400 text-center mt-10 font-medium">
-            No hay órdenes para mostrar...
-          </div>
-        )}
+      <div className="w-full md:w-[22rem] lg:w-[26rem] bg-background border-l border-secundaryText/20 shadow-xs z-20 flex flex-col">
+        <div className="flex flex-col h-full p-6 md:p-8">
+          {/* Validamos que ya haya cargado una orden antes de pintar el ticket */}
+          {ordenSeleccionada ? (
+            <PanelDetalle 
+              orden={ordenSeleccionada} 
+              onEntregar={marcarComoEntregada} // Pasamos la función al panel derecho
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-secundaryText/60 font-medium text-sm mt-10">
+              No hay órdenes para mostrar...
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

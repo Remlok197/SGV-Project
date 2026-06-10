@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageHeader from "../components/shared/PageHeader";
 import TabGroup from "./productos/components/tabs/TabGroup";
 import Tab from "./productos/components/tabs/Tab";
@@ -20,8 +20,9 @@ export default function TomarOrdenPage() {
     const [editingItemIndex, setEditingItemIndex] = useState(null);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("Efectivo");
+    const [nextOrderId, setNextOrderId] = useState(null);
     const { catalog, loading, error } = useProducts();
-    const { createOrder, loading: isCreatingOrder } = useOrders();
+    const { createOrder, getNextOrderId, loading: isCreatingOrder } = useOrders();
     const { 
         orderItems, 
         addItem, 
@@ -33,6 +34,15 @@ export default function TomarOrdenPage() {
         calculateItemTotal, 
         total 
     } = useCart();
+
+    const fetchNextId = async () => {
+        const id = await getNextOrderId();
+        if (id) setNextOrderId(id);
+    };
+
+    useEffect(() => {
+        fetchNextId();
+    }, []);
 
     const handleEditItem = (index) => {
         setEditingItemIndex(index);
@@ -47,6 +57,7 @@ export default function TomarOrdenPage() {
             await createOrder(orderItems, { tipo_pedido: "mostrador" });
             clearCart();
             setIsPaymentModalOpen(false);
+            fetchNextId(); // Refresh ID for the next order
         } catch (err) {
             alert(err.message || "Hubo un error al crear la orden");
         }
@@ -136,7 +147,7 @@ export default function TomarOrdenPage() {
                 <div className="flex flex-col h-full p-6 md:p-8">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-lg md:text-xl font-bold text-primaryText">Detalles de la orden:</h2>
-                        <span className="text-secundaryText font-medium text-lg">#232</span>
+                        <span className="text-secundaryText font-medium text-lg">#{nextOrderId || '...'}</span>
                     </div>
 
                     {/* Order Items List */}

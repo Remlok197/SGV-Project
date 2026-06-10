@@ -7,73 +7,98 @@ interface PanelDetailProps {
 }
 
 export default function PanelDetail({ orden, onEntregar }: PanelDetailProps) {
-  if (!orden) return <div className="text-gray-400 text-center mt-10">Selecciona una orden</div>;
+  if (!orden) return null;
 
-  const yaEntregada = orden.estado.toLowerCase() === "entregado";
+  const yaEntregada = orden.estado.toLowerCase() === "entregada";
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Cabecera del ticket */}
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-xl font-bold text-gray-800">Detalles de la orden:</h2>
-        <span className="text-xl font-bold text-gray-600">#{orden.id}</span>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg md:text-xl font-bold text-primaryText">Detalles de la orden:</h2>
+        <span className="text-secundaryText font-medium text-lg">#{orden.id}</span>
       </div>
 
       {/* Lista de productos */}
-      <div className="flex flex-col gap-6 flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto flex flex-col">
         {orden.detalles.length === 0 ? (
-          <p className="text-gray-400 text-sm">No hay detalles para mostrar en esta simulación.</p>
+          <div className="flex-1 flex items-center justify-center text-secundaryText/60 font-medium text-sm">
+            No hay productos en la orden
+          </div>
         ) : (
-          orden.detalles.map((item: any) => (
-            <div key={item.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <img 
-                  src={item.imagenUrl} 
-                  alt={item.nombre} 
-                  className="w-14 h-14 rounded-xl object-cover border border-gray-200"
-                />
-                <div className="flex flex-col">
-                  <span className="font-bold text-gray-800 text-sm">{item.nombre}</span>
-                  <span className="font-semibold text-orange-500 text-sm">${item.precio.toFixed(2)}</span>
+          orden.detalles.map((item: any, index: number) => {
+            const itemTotal = item.precio * item.cantidad;
+            return (
+              <div key={item.id} className={`flex flex-col ${index !== orden.detalles.length - 1 ? 'border-b-2 border-borderInput/60 pb-4 mb-4' : 'pb-2'}`}>
+                {/* Top Row: Info */}
+                <div className="flex justify-between items-start">
+                  <div className="flex gap-4 flex-1">
+                    <div className="size-12 md:size-14 rounded-lg bg-gray-200 border border-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                      {item.imagenUrl && item.imagenUrl !== "https://via.placeholder.com/60" ? (
+                        <img src={item.imagenUrl} alt={item.nombre} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[10px] text-gray-400 font-medium">IMG</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col justify-start pt-1">
+                      <h3 className="font-bold text-primaryText text-lg leading-none">{item.nombre}</h3>
+                      <p className="text-secundaryText font-medium text-base mt-1.5">${item.precio.toFixed(2)} c/u</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2.5">
+                    <span className="bg-gray-100 text-secundaryText font-bold text-xs md:text-sm px-2 py-1 rounded-md">x{item.cantidad}</span>
+                    <span className="font-bold text-primaryText text-sm md:text-base leading-none">${itemTotal.toFixed(2)}</span>
+                  </div>
                 </div>
+                
+                {/* Bottom Row: Tags (solo si existen) */}
+                {item.opciones && item.opciones.length > 0 && (
+                  <div className="flex mt-3">
+                    <div className="flex flex-wrap gap-2 flex-1">
+                      {item.opciones.map((opcion: string, i: number) => (
+                        <span key={i} className="bg-gray-50 text-secundaryText font-medium text-[12px] px-2.5 py-1 rounded-md border-[1.5px] border-dashed border-gray-300/80">
+                          {opcion}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <span className="font-bold text-gray-600">x{item.cantidad}</span>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
       {/* Footer del ticket (Total y Botones) */}
-      <div className="pt-6 border-t border-gray-200 mt-auto">
-        <div className="flex justify-between items-center mb-8">
-          <span className="font-bold text-gray-800">Total:</span>
-          <span className="font-bold text-gray-800">${orden.total.toFixed(2)}</span>
+      <div className="mt-6 pt-6 border-t border-secundaryText/20">
+        <div className="flex justify-between items-center mb-6">
+          <span className="font-bold text-primaryText text-base md:text-lg">Total:</span>
+          <span className="font-bold text-primaryText text-base md:text-lg">
+            ${orden.total.toFixed(2)}
+          </span>
         </div>
 
-        <div className="flex gap-3">
-         <button 
+        <div className="flex gap-4">
+          <button 
             onClick={() => {
-              // Formateamos los detalles para que nuestro ticketPrinter los lea perfecto
               const itemsImpresion = orden.detalles.map((item: any) => ({
                 nombre: item.nombre,
                 cantidad: item.cantidad,
-                // Multiplicamos para que salga el costo total de esos tacos en el ticket
                 precio_total: item.precio * item.cantidad 
               }));
-              
               imprimirTicket(itemsImpresion, orden.total, orden.id);
             }}
-            className="flex-1 py-3 px-4 font-bold rounded-lg border-2 border-orange-500 text-orange-500 hover:bg-orange-50 transition-colors"
+            className="flex-1 py-2 rounded-xl border border-primaryAction text-primaryAction font-bold hover:bg-primaryAction/5 transition-colors text-sm md:text-base"
           >
             IMPRIMIR
           </button>
           <button 
             onClick={() => onEntregar(orden.id)}
             disabled={yaEntregada}
-            className={`flex-1 py-3 px-4 font-bold rounded-lg transition-colors ${
+            className={`flex-1 py-2 rounded-xl text-white font-bold transition-colors shadow-md text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed ${
               yaEntregada 
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-green-500 text-white hover:bg-green-600'
+                ? 'bg-gray-400 shadow-none' 
+                : 'bg-green-500 hover:bg-green-600 shadow-green-500/20'
             }`}
           >
             {yaEntregada ? 'ENTREGADA' : 'ENTREGAR'}

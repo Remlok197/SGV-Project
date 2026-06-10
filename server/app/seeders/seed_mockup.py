@@ -117,29 +117,53 @@ def seed(db: Session):
     for i, dias in enumerate(dias_atras):
         fecha_orden = now - timedelta(days=dias, hours=i)
         
+        # Las órdenes más recientes serán pendientes
+        estado_orden = "pendiente" if dias == 0 and i < 2 else "entregada"
+
         orden = models.Orden(
             serie=f"A{i:03d}",
             tipo_pedido="mesa" if i % 2 == 0 else "mostrador",
             numero_mesa=i if i % 2 == 0 else None,
             fecha=fecha_orden,
-            estado="completada",
+            estado=estado_orden,
             total=0.0
         )
         
         detalles = []
         total = 0.0
         if i % 2 == 0:
-            detalles.append(models.DetalleOrden(id_producto=productos[0].id, cantidad=3, subtotal=17.0 * 3))
-            detalles.append(models.DetalleOrden(id_producto=productos[4].id, cantidad=2, subtotal=21.0 * 2))
+            det = models.DetalleOrden(id_producto=productos[0].id, cantidad=3, subtotal=17.0 * 3)
+            # Agregar modificadores al taco: Pastor y Salsa Verde
+            det.opciones = [opciones[0], opciones[3]]
+            detalles.append(det)
+
+            det2 = models.DetalleOrden(id_producto=productos[4].id, cantidad=2, subtotal=21.0 * 2)
+            detalles.append(det2)
             total += (17.0 * 3) + (21.0 * 2)
         else:
-            detalles.append(models.DetalleOrden(id_producto=productos[1].id, cantidad=1, subtotal=25.0))
-            detalles.append(models.DetalleOrden(id_producto=productos[2].id, cantidad=1, subtotal=30.0))
-            total += 25.0 + 30.0
+            det = models.DetalleOrden(id_producto=productos[1].id, cantidad=1, subtotal=25.0)
+            # Quesadilla: Asada, Harina, Salsa Roja
+            det.opciones = [opciones[1], opciones[5], opciones[2]]
+            detalles.append(det)
+
+            det2 = models.DetalleOrden(id_producto=productos[2].id, cantidad=1, subtotal=30.0)
+            # Torta: Pastor
+            det2.opciones = [opciones[0]]
+            detalles.append(det2)
+            
+            # Sumamos precios extras de los modificadores: Asada (+5), Harina (+2)
+            subtotal_quesadilla = 25.0 + 5.0 + 2.0
+            det.subtotal = subtotal_quesadilla
+            total += subtotal_quesadilla + 30.0
             
         if i % 3 == 0:
-            detalles.append(models.DetalleOrden(id_producto=productos[3].id, cantidad=2, subtotal=21.0 * 2))
-            total += 21.0 * 2
+            det = models.DetalleOrden(id_producto=productos[3].id, cantidad=2, subtotal=21.0 * 2)
+            # Volcán: Asada, Salsa Verde
+            det.opciones = [opciones[1], opciones[3]]
+            # Asada (+5) * 2
+            det.subtotal = (21.0 + 5.0) * 2
+            detalles.append(det)
+            total += det.subtotal
             
         orden.detalles = detalles
         orden.total = total
@@ -150,13 +174,15 @@ def seed(db: Session):
     
     ventas = []
     for orden in ordenes:
-        venta = models.Venta(
-            id_orden=orden.id,
-            metodo_pago="efectivo" if orden.id % 2 == 0 else "tarjeta",
-            precio_total=orden.total,
-            fecha=orden.fecha
-        )
-        ventas.append(venta)
+        # Solo crear ventas para las que ya se pagaron/entregaron
+        if orden.estado == "entregada":
+            venta = models.Venta(
+                id_orden=orden.id,
+                metodo_pago="efectivo" if orden.id % 2 == 0 else "tarjeta",
+                precio_total=orden.total,
+                fecha=orden.fecha
+            )
+            ventas.append(venta)
         
     db.add_all(ventas)
     db.commit()
