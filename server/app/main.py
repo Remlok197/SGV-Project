@@ -231,7 +231,7 @@ def subir_imagen_producto(producto_id: int, file: UploadFile = File(...), db: Se
 @app.get("/api/products", response_model=schemas.CatalogoResponse)
 def obtener_catalogo_completo(db: Session = Depends(get_db)):
     categorias_db = db.query(models.Categoria).all()
-    productos_db = db.query(models.Producto).all()
+    productos_db = db.query(models.Producto).filter(models.Producto.eliminado == False).all()
 
     productos_response = []
     for p in productos_db:
@@ -308,6 +308,19 @@ def editar_producto(producto_id: int, producto: schemas.ProductoUpdate, db: Sess
 
     return schemas.ProductoResponse.model_validate(producto_db)
 
+
+# DELETE ENDPOINT
+
+@app.delete("/api/products/{producto_id}")
+def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
+    producto_db = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+    if not producto_db:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+        
+    producto_db.eliminado = True
+    db.commit()
+    
+    return {"mensaje": "Producto eliminado exitosamente"}
 
 # RUTAS DE LOS MODIFICADORES BABYYYY
 # POST (CREATE)

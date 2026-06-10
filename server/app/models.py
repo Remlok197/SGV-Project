@@ -34,6 +34,7 @@ class Producto(Base):
     precio = Column(Float, nullable=False)
     unidades = Column(String, nullable=False)
     activo = Column(Boolean, default=True)
+    eliminado = Column(Boolean, default=False)
     imagen_url = Column(String, nullable=True)
     id_categoria = Column(Integer, ForeignKey("categorias.id"), nullable=True)
     
