@@ -13,7 +13,7 @@ import { ReactSVG } from "react-svg";
 import CategoryActionButton from "./components/category/CategoryActionButton";
 import NewCategoryInput from "./components/category/NewCategoryInput";
 import EditableCategoryContent from "./components/category/EditableCategoryContent";
-
+import ConfirmModal from "../../components/shared/ConfirmModal";
 
 export default function ProductosPage() {
     const [activeCategory, setActiveCategory] = useState("Todos");
@@ -23,6 +23,10 @@ export default function ProductosPage() {
 
     // Category edit states
     const [isEditMode, setIsEditMode] = useState(false);
+
+    // Confirm modal states
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [confirmAction, setConfirmAction] = useState(null);
 
     // Drag to scroll states
     const scrollContainerRef = useRef(null);
@@ -67,14 +71,15 @@ export default function ProductosPage() {
 
     const handleDeleteProduct = async (productId) => {
         setActionError(null);
-        if (window.confirm("¿Estás seguro de que deseas eliminar este producto?")) {
+        setConfirmAction(() => async () => {
             try {
                 await deleteProduct(productId);
             } catch (err) {
                 setActionError(err.message || "Error al eliminar el producto.");
                 setTimeout(() => setActionError(null), 5000);
             }
-        }
+        });
+        setIsConfirmModalOpen(true);
     };
 
     const handleSaveProduct = async (data) => {
@@ -285,6 +290,13 @@ export default function ProductosPage() {
                 </div>
             </div>
 
+            <ConfirmModal 
+                isOpen={isConfirmModalOpen}
+                onOpenChange={setIsConfirmModalOpen}
+                title="Eliminar Producto"
+                message="¿Estás seguro de que deseas eliminar este producto?"
+                onConfirm={() => confirmAction && confirmAction()}
+            />
         </div>
     );
 }

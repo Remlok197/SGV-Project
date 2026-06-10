@@ -34,9 +34,32 @@ export default function ImageUpload({ defaultImageUrl }: ImageUploadProps) {
     }
   };
 
+  const handleBypassClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const response = await fetch("http://127.0.0.1:8000/imagenes/carlota.jpg");
+      const blob = await response.blob();
+      const file = new File([blob], "carlota.jpg", { type: blob.type });
+      
+      const imageUrl = URL.createObjectURL(file);
+      setImagePreview(imageUrl);
+      
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      
+      const input = document.querySelector('input[name="image"]') as HTMLInputElement;
+      if (input) {
+        input.files = dt.files;
+      }
+    } catch (error) {
+      console.error("Error al cargar la imagen de bypass:", error);
+    }
+  };
+
   return (
     <div className="col-span-2 flex flex-col items-center justify-center">
-      <label className="cursor-pointer flex flex-col items-center group">
+      <label className="cursor-pointer flex flex-col items-center group" onClick={handleBypassClick}>
         <div className="mb-2 size-25 rounded-xl flex items-center justify-center bg-gray-100 overflow-hidden">
           
           {imagePreview ? (

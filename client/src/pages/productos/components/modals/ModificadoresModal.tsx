@@ -6,6 +6,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import NuevoModificadorModal from "./NuevoModificadorModal";
+import ConfirmModal from "../../../../components/shared/ConfirmModal";
 
 interface ModificadoresModalProps {
   isOpen: boolean;
@@ -57,6 +58,9 @@ export default function ModificadoresModal({ isOpen, onOpenChange, categorias }:
   const [isNuevoModalOpen, setIsNuevoModalOpen] = useState(false);
   const [editingMod, setEditingMod] = useState<any>(null);
 
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+
   // 1. Efecto para cargar los datos cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
@@ -89,7 +93,7 @@ export default function ModificadoresModal({ isOpen, onOpenChange, categorias }:
   };
 
   const handleDeleteModificador = async (id: number) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este modificador?")) {
+    setConfirmAction(() => async () => {
       try {
         const res = await fetch(`http://127.0.0.1:8000/api/modificadores/${id}`, {
           method: "DELETE"
@@ -103,7 +107,8 @@ export default function ModificadoresModal({ isOpen, onOpenChange, categorias }:
       } catch (error) {
         console.error("Error eliminando modificador:", error);
       }
-    }
+    });
+    setIsConfirmModalOpen(true);
   };
 
 
@@ -256,6 +261,14 @@ export default function ModificadoresModal({ isOpen, onOpenChange, categorias }:
         onSave={handleSaveNuevoModificador} 
         categorias={categorias}
         initialData={editingMod}
+      />
+
+      <ConfirmModal 
+        isOpen={isConfirmModalOpen}
+        onOpenChange={setIsConfirmModalOpen}
+        title="Eliminar Modificador"
+        message="¿Estás seguro de que deseas eliminar este modificador?"
+        onConfirm={() => confirmAction && confirmAction()}
       />
     </Modal>
   );
