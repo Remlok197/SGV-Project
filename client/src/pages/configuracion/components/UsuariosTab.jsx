@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUsers } from '../../../hooks/useUsers';
-import { Edit, UserPlus, Shield, User, MoreVertical } from 'lucide-react';
+import { Edit, UserPlus, Shield, User, MoreVertical, Key } from 'lucide-react';
 import UserModal from './UserModal';
+import PasswordModal from './PasswordModal';
 import UserAvatar from '../../../components/header/UserAvatar';
 
 const formatLastLogin = (dateString) => {
@@ -16,7 +17,7 @@ const formatLastLogin = (dateString) => {
     });
 };
 
-function UserRow({ user, onSaveUser }) {
+function UserRow({ user, onSaveUser, onChangePassword }) {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ ...user });
     const [showDropdown, setShowDropdown] = useState(false);
@@ -124,7 +125,7 @@ function UserRow({ user, onSaveUser }) {
                     </button>
                     
                     {showDropdown && (
-                        <div className="absolute right-0 mt-1 w-32 bg-white rounded-xl border border-slate-100 shadow-xl py-1.5 z-30">
+                        <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl border border-slate-100 shadow-xl py-1.5 z-30">
                             <button
                                 onClick={() => {
                                     setShowDropdown(false);
@@ -134,6 +135,16 @@ function UserRow({ user, onSaveUser }) {
                             >
                                 <Edit size={16} />
                                 <span>Editar</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowDropdown(false);
+                                    onChangePassword(user);
+                                }}
+                                className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-slate-700 hover:bg-[#EE791C]/10 hover:text-[#EE791C] transition-colors text-left cursor-pointer"
+                            >
+                                <Key size={16} />
+                                <span>Cambiar contraseña</span>
                             </button>
                         </div>
                     )}
@@ -146,6 +157,7 @@ function UserRow({ user, onSaveUser }) {
 export default function UsuariosTab() {
     const { users, loading, error, createUser, updateUser } = useUsers();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [passwordChangeUser, setPasswordChangeUser] = useState(null);
 
     const handleOpenModal = () => {
         setIsModalOpen(true);
@@ -163,6 +175,7 @@ export default function UsuariosTab() {
                 await createUser(userData);
             }
             setIsModalOpen(false);
+            setPasswordChangeUser(null);
         } catch (err) {
             alert(err.message || 'Error al guardar usuario');
         }
@@ -203,6 +216,7 @@ export default function UsuariosTab() {
                                 key={user.id} 
                                 user={user} 
                                 onSaveUser={handleSaveUser} 
+                                onChangePassword={(u) => setPasswordChangeUser(u)}
                             />
                         ))}
                         {users.length === 0 && (
@@ -221,6 +235,14 @@ export default function UsuariosTab() {
                     user={null} 
                     onClose={handleCloseModal} 
                     onSave={handleSaveUser} 
+                />
+            )}
+
+            {passwordChangeUser && (
+                <PasswordModal
+                    user={passwordChangeUser}
+                    onClose={() => setPasswordChangeUser(null)}
+                    onSave={handleSaveUser}
                 />
             )}
         </div>
