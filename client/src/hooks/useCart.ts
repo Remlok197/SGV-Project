@@ -46,11 +46,19 @@ export function useCart() {
         const base = typeof item.product.price === 'number' ? item.product.price : 17.00;
         let surcharge = 0;
         
-        if (item.options?.["Carne"]) {
-            const carneOpts = Array.isArray(item.options["Carne"]) ? item.options["Carne"] : [item.options["Carne"]];
-            if (carneOpts.includes("Tripa")) {
-                surcharge += 2.00;
-            }
+        if (item.options && item.product.modificadores) {
+            Object.entries(item.options).forEach(([modName, selectedOpts]) => {
+                const mod = item.product.modificadores.find((m: any) => m.nombre === modName);
+                if (mod && mod.opciones) {
+                    const optArray = Array.isArray(selectedOpts) ? selectedOpts : [selectedOpts];
+                    optArray.forEach(optName => {
+                        const opt = mod.opciones.find((o: any) => o.nombre === optName);
+                        if (opt && typeof opt.precio_extra === 'number') {
+                            surcharge += opt.precio_extra;
+                        }
+                    });
+                }
+            });
         }
         
         return base + surcharge;
