@@ -90,13 +90,14 @@ export default function ProductosPage() {
 
     return (
         <div className="relative flex h-full w-full overflow-hidden">
-            <div className={`flex-1 h-full pb-12 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out ${isPanelOpen ? 'md:pr-84 lg:pr-120' : ''}`}>
-                <div className="flex flex-col gap-2 md:gap-2 lg:gap-3 pt-6 px-13 md:px-20 lg:px-22">
-                    <PageHeader title={"Productos"}>
+            <div className={`flex-1 h-full pb-12 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out ${isPanelOpen ? 'md:pr-[23.5rem] lg:pr-[32.75rem]' : ''}`}>
+                <div className="flex flex-col gap-2 md:gap-2 lg:gap-3 pt-6">
+                    <div className="px-6 md:px-10 lg:px-11">
+                        <PageHeader title={"Productos"}>
                         {!isEditMode && catalog.categories.find(c => c.name === "Todos") && (
                             <button
                                 onClick={() => setActiveCategory("Todos")}
-                                className={`flex items-center w-fit flex-none gap-2 h-10 px-4 rounded-[10px] border font-medium text-sm transition-all duration-200 cursor-pointer select-none flex-shrink-0 ${activeCategory === "Todos"
+                                className={`flex items-center w-fit flex-none gap-2 h-10 px-3 rounded-[10px] border font-medium text-sm transition-all duration-200 cursor-pointer select-none flex-shrink-0 ${activeCategory === "Todos"
                                         ? "border-primaryAction bg-transparent text-primaryAction"
                                         : "border-[#E2E8F0] bg-transparent text-secundaryText hover:bg-gray-50 hover:text-primaryText"
                                     }`}
@@ -203,17 +204,20 @@ export default function ProductosPage() {
                             />
                         )}
                     </PageHeader>
+                    </div>
 
                     {actionError && (
-                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center justify-between text-sm">
-                            <span>{actionError}</span>
-                            <button onClick={() => setActionError(null)} className="text-red-500 hover:text-red-700 font-bold ml-2 cursor-pointer">
-                                &times;
-                            </button>
+                        <div className="px-6 md:px-10 lg:px-11">
+                            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center justify-between text-sm">
+                                <span>{actionError}</span>
+                                <button onClick={() => setActionError(null)} className="text-red-500 hover:text-red-700 font-bold ml-2 cursor-pointer">
+                                    &times;
+                                </button>
+                            </div>
                         </div>
                     )}
 
-                    <div className="-mx-13 md:-mx-20 lg:-mx-22">
+                    <div className="w-full">
                         <CategoryDivider
                             categoryName={activeCategory}
                             itemCount={
@@ -221,42 +225,46 @@ export default function ProductosPage() {
                                     ? catalog.products.length 
                                     : catalog.products.filter(p => p.categoryId === catalog.categories.find(c => c.name === activeCategory)?.id).length
                             }
-                            leftLineClassName="w-[3.5rem] md:w-[5rem] lg:w-[5.5rem]"
+                            leftLineClassName="w-6 md:w-10 lg:w-11"
                             titleClassName="text-base md:text-xl lg:text-2xl"
                             countClassName="text-sm md:text-base lg:text-lg ml-1 md:ml-1.5 lg:ml-2 "
                         />
                     </div>
 
-                    <ProductGrid>
-                        <AddProductCard
-                            text={"Añadir nuevo\nproducto"}
-                            onClick={() => {
-                                setEditingProduct(null);
-                                setFormKey(Date.now());
-                                setIsPanelOpen(true);
-                            }}
-                            className={`${isPanelOpen ? 'hidden' : ''}`}
-                        />
-
-                        {catalog.products
-                            .filter(product => {
-                                if (activeCategory === "Todos") return true;
-                                const activeCatId = catalog.categories.find(c => c.name === activeCategory)?.id;
-                                return product.categoryId === activeCatId;
-                            })
-                            .map((product) => (
-                                <ProductCard
-                                    key={product.id}
-                                    name={product.name}
-                                    price={product.formattedPrice}
-                                    modifiers={product.modifiers}
-                                    imageUrl={product.imageUrl}
-                                    isAvailable={product.isAvailable}
-                                    onEdit={() => handleEditProduct(product.id)}
-                                    onDelete={() => handleDeleteProduct(product.id)}
+                    <div className="px-6 md:px-10 lg:px-11">
+                        <div className={`grid grid-cols-[repeat(auto-fill,17.28rem)] gap-y-8 pb-4 ${!isPanelOpen ? 'gap-x-4 justify-between' : 'gap-x-6 justify-start'}`}>
+                            <div className={`scale-[1.08] origin-top-left ${isPanelOpen ? 'hidden' : ''}`}>
+                                <AddProductCard
+                                    text={"Añadir nuevo\nproducto"}
+                                    onClick={() => {
+                                        setEditingProduct(null);
+                                        setFormKey(Date.now());
+                                        setIsPanelOpen(true);
+                                    }}
                                 />
-                            ))}
-                    </ProductGrid>
+                            </div>
+
+                            {catalog.products
+                                .filter(product => {
+                                    if (activeCategory === "Todos") return true;
+                                    const activeCatId = catalog.categories.find(c => c.name === activeCategory)?.id;
+                                    return product.categoryId === activeCatId;
+                                })
+                                .map((product) => (
+                                    <div key={product.id} className="scale-[1.08] origin-top-left">
+                                        <ProductCard
+                                            name={product.name}
+                                            price={product.formattedPrice}
+                                            modifiers={product.modifiers}
+                                            imageUrl={product.imageUrl}
+                                            isAvailable={product.isAvailable}
+                                            onEdit={() => handleEditProduct(product.id)}
+                                            onDelete={() => handleDeleteProduct(product.id)}
+                                        />
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
                 </div>
             </div>
             <div

@@ -28,7 +28,7 @@ const modificadoresTexto = modifiers && modifiers.trim() !== ""
 
   return (
     <div className="flex border border-secundaryText/35 shadow-md rounded-lg 
-                    p-3 md:p-3.5 gap-3 max-w-64 min-h-[115px] 
+                    p-2 md:p-2.5 gap-3 max-w-64 min-h-[115px] 
                     items-center
                     relative transition-shadow hover:shadow-md bg-white">
       

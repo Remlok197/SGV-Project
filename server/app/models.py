@@ -107,3 +107,4 @@ class Usuario(Base):
     rol = Column(String, nullable=False) 
     hashed_password = Column(String, nullable=False)
     activo = Column(Boolean, default=True)
+    ultimo_acceso = Column(DateTime, nullable=True)

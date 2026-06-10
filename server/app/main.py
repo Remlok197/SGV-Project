@@ -452,18 +452,52 @@ def eliminar_opcion(opcion_id: int, db: Session = Depends(get_db)):
 # RUTAS DE LOS USUARIOS Y AUTENTICACION BABYYY
 
 
-@app.post("/api/usuarios")
+@app.post("/api/usuarios", response_model=schemas.UsuarioResponse)
 def registrar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db)):
+    usuario_existente = db.query(models.Usuario).filter(models.Usuario.nombre == usuario.nombre).first()
+    if usuario_existente:
+        raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso")
+
     hashed_pwd = get_password_hash(usuario.contrasena)
     nuevo_usuario = models.Usuario(
         nombre=usuario.nombre,
         rol=usuario.rol,
-        hashed_password=hashed_pwd
+        hashed_password=hashed_pwd,
+        activo=True
     )
     db.add(nuevo_usuario)
     db.commit()
     db.refresh(nuevo_usuario)
-    return {"mensaje": f"Usuario {nuevo_usuario.nombre} creado con éxito"}
+    return nuevo_usuario
+
+@app.get("/api/usuarios", response_model=List[schemas.UsuarioResponse])
+def obtener_usuarios(db: Session = Depends(get_db)):
+    return db.query(models.Usuario).order_by(models.Usuario.id.asc()).all()
+
+@app.put("/api/usuarios/{usuario_id}", response_model=schemas.UsuarioResponse)
+def editar_usuario(usuario_id: int, usuario: schemas.UsuarioUpdate, db: Session = Depends(get_db)):
+    usuario_db = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if usuario.nombre is not None:
+        usuario_existente = db.query(models.Usuario).filter(models.Usuario.nombre == usuario.nombre, models.Usuario.id != usuario_id).first()
+        if usuario_existente:
+            raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso")
+        usuario_db.nombre = usuario.nombre
+        
+    if usuario.rol is not None:
+        usuario_db.rol = usuario.rol
+        
+    if usuario.contrasena is not None and usuario.contrasena.strip() != "":
+        usuario_db.hashed_password = get_password_hash(usuario.contrasena)
+        
+    if usuario.activo is not None:
+        usuario_db.activo = usuario.activo
+
+    db.commit()
+    db.refresh(usuario_db)
+    return usuario_db
 
 # Official Endpoint
 
@@ -478,6 +512,9 @@ def login(credenciales: schemas.LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=401, detail="Usuario o contraseña incorrectos"
         )
+
+    usuario_db.ultimo_acceso = datetime.utcnow()
+    db.commit()
 
     access_token = create_access_token(
         data={"sub": usuario_db.nombre, "rol": usuario_db.rol}

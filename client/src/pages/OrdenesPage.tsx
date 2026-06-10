@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import PanelLista from "./ordenes/PanelList";
 import PanelDetalle from "./ordenes/PanelDetail";
 import { imprimirTicket } from '../utils/ticketPrinter';
+import PageHeader from "../components/shared/PageHeader";
 
 export default function OrdenesPage() {
   const [ordenes, setOrdenes] = useState<any[]>([]);
@@ -65,16 +66,20 @@ export default function OrdenesPage() {
   };
 
   return (
-    <div className="flex h-full w-full bg-gray-50">
+    <div className="flex h-full w-full overflow-hidden bg-background">
       {/* Panel Izquierdo */}
-      <div className="flex-1 p-8 border-r border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 uppercase">Órdenes Recientes</h1>
-        <PanelLista 
-          ordenes={ordenes} 
-          // Si no hay orden seleccionada, mandamos 0 para que no truene
-          ordenSeleccionadaId={ordenSeleccionada?.id || 0}
-          onSelect={setOrdenSeleccionada} 
-        />
+      <div className="flex-1 h-full flex flex-col pt-6 overflow-y-auto border-r border-secundaryText/20">
+        <div className="px-6 md:px-10 lg:px-11 flex-shrink-0 mb-6">
+            <PageHeader title={"Órdenes Recientes"} />
+        </div>
+        <div className="px-6 md:px-10 lg:px-11 pb-12">
+          <PanelLista 
+            ordenes={ordenes} 
+            // Si no hay orden seleccionada, mandamos 0 para que no truene
+            ordenSeleccionadaId={ordenSeleccionada?.id || 0}
+            onSelect={setOrdenSeleccionada} 
+          />
+        </div>
       </div>
 
       {/* Panel Derecho */}

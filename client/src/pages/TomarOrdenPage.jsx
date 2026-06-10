@@ -65,12 +65,12 @@ export default function TomarOrdenPage() {
         <div className="relative flex h-full w-full overflow-hidden">
             {/* Left Column - Menu */}
             <div className="flex-1 h-full pb-12 flex flex-col overflow-y-auto md:pr-[22rem] lg:pr-[26rem] transition-all duration-300 ease-in-out">
-                <div className="flex flex-col gap-2 md:gap-2 lg:gap-3 pt-6 pl-13 md:pl-20 lg:pl-22 pr-6 md:pr-8 lg:pr-10">
+                <div className="flex flex-col gap-2 md:gap-2 lg:gap-3 pt-6 pl-6 md:pl-10 lg:pl-11 pr-3 md:pr-4 lg:pr-5">
                     <PageHeader title={"MENÚ"}>
                         {catalog.categories.find(c => c.name === "Todos") && (
                             <button
                                 onClick={() => setActiveCategory("Todos")}
-                                className={`flex items-center w-fit flex-none gap-2 h-10 px-4 rounded-[10px] border font-medium text-sm transition-all duration-200 cursor-pointer select-none flex-shrink-0 ${
+                                className={`flex items-center w-fit flex-none gap-2 h-10 px-3 rounded-[10px] border font-medium text-sm transition-all duration-200 cursor-pointer select-none flex-shrink-0 ${
                                     activeCategory === "Todos"
                                         ? "border-primaryAction bg-transparent text-primaryAction"
                                         : "border-[#E2E8F0] bg-transparent text-secundaryText hover:bg-gray-50 hover:text-primaryText"

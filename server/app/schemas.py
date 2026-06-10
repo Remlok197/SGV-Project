@@ -192,6 +192,23 @@ class UsuarioCreate(BaseModel):
     contrasena: str
     rol: str
 
+class UsuarioUpdate(BaseModel):
+    nombre: Optional[str] = None
+    contrasena: Optional[str] = None
+    rol: Optional[str] = None
+    activo: Optional[bool] = None
+
+class UsuarioResponse(BaseModel):
+    id: int
+    nombre: str
+    rol: str
+    activo: bool
+    ultimo_acceso: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 
 # ORDENES DETALLES
 class DetalleOrdenCreate(BaseModel):
