@@ -63,17 +63,28 @@ export default function ProductForm({ product, categories, onCancel, onSuccess, 
     });
   };
 
-  // Efecto A: Traer TODOS los modificadores desde tu API en FastAPI
-  useEffect(() => {
+  // Función para traer modificadores
+  const fetchModificadores = () => {
     fetch("http://127.0.0.1:8000/api/modificadores")
       .then(res => res.json())
       .then(data => {
-          // Extraemos el arreglo sin importar cómo lo haya envuelto Fabian
           const arrayReal = Array.isArray(data) ? data : (data.data || data.modificadores || []);
           setModificadores(arrayReal);
       })
       .catch(err => console.error("Error al cargar modificadores:", err));
+  };
+
+  // Efecto A: Traer TODOS los modificadores al montar
+  useEffect(() => {
+    fetchModificadores();
   }, []);
+
+  // Efecto Extra: Recargar modificadores cuando se cierra el modal de edición de modificadores
+  useEffect(() => {
+    if (!isModalOpen) {
+      fetchModificadores();
+    }
+  }, [isModalOpen]);
 
   // Efecto B: Sincronizar los checkboxes cuando abres un producto para editar
   useEffect(() => {

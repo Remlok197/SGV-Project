@@ -1,5 +1,5 @@
 import AddImageIcon from '../icons/AddImageIcon';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface FieldLabelProps {
   children: React.ReactNode;
@@ -19,6 +19,7 @@ interface ImageUploadProps {
 export default function ImageUpload({ defaultImageUrl }: ImageUploadProps) {
   // 1. Explicitly type the state to accept a string or null
   const [imagePreview, setImagePreview] = useState<string | null>(defaultImageUrl || null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setImagePreview(defaultImageUrl || null);
@@ -34,9 +35,32 @@ export default function ImageUpload({ defaultImageUrl }: ImageUploadProps) {
     }
   };
 
+  const handleMockClick = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Evitamos que se abra el explorador de archivos
+    try {
+      const response = await fetch("http://127.0.0.1:8000/imagenes/carlota.jpg");
+      if (!response.ok) throw new Error("No se pudo cargar carlota.jpg");
+      
+      const blob = await response.blob();
+      const file = new File([blob], "carlota.jpg", { type: "image/jpeg" });
+      
+      if (inputRef.current) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        inputRef.current.files = dataTransfer.files;
+        
+        // Actualizamos la vista previa
+        const imageUrl = URL.createObjectURL(file);
+        setImagePreview(imageUrl);
+      }
+    } catch (error) {
+      console.error("Error al cargar la imagen por defecto:", error);
+    }
+  };
+
   return (
     <div className="col-span-2 flex flex-col items-center justify-center">
-      <label className="cursor-pointer flex flex-col items-center group">
+      <label className="cursor-pointer flex flex-col items-center group" onClick={handleMockClick}>
         <div className="mb-2 size-25 rounded-xl flex items-center justify-center bg-gray-100 overflow-hidden">
           
           {imagePreview ? (
@@ -61,6 +85,7 @@ export default function ImageUpload({ defaultImageUrl }: ImageUploadProps) {
           accept="image/*"
           className="hidden"
           onChange={handleImageChange}
+          ref={inputRef}
         />
       </label>
     </div>
