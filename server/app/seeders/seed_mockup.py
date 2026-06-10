@@ -1,10 +1,12 @@
 from app import models
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from datetime import datetime, timedelta
+import random
 
 def seed(db: Session):
     # Borrar datos anteriores para asegurar el nuevo mockup sin afectar la categoría Todos (ID: 1)
-    db.execute(text("TRUNCATE TABLE productos, grupos_modificadores, opciones_modificadores CASCADE"))
+    db.execute(text("TRUNCATE TABLE productos, grupos_modificadores, opciones_modificadores, ordenes, detalles_orden, ventas CASCADE"))
     db.execute(text("DELETE FROM categorias WHERE id != 1"))
     db.execute(text("ALTER SEQUENCE categorias_id_seq RESTART WITH 2"))
     db.commit()
@@ -106,3 +108,57 @@ def seed(db: Session):
     db.commit()
 
     print("  [+] Productos de prueba (mockup), categorías y modificadores insertados con éxito.")
+
+    # 5. Crear Órdenes y Ventas Mockup para Estadísticas
+    now = datetime.utcnow()
+    dias_atras = [0, 0, 0, 1, 1, 2, 3, 5, 7, 10, 15, 30] # Diferentes días para probar filtros
+    ordenes = []
+    
+    for i, dias in enumerate(dias_atras):
+        fecha_orden = now - timedelta(days=dias, hours=i)
+        
+        orden = models.Orden(
+            serie=f"A{i:03d}",
+            tipo_pedido="mesa" if i % 2 == 0 else "mostrador",
+            numero_mesa=i if i % 2 == 0 else None,
+            fecha=fecha_orden,
+            estado="completada",
+            total=0.0
+        )
+        
+        detalles = []
+        total = 0.0
+        if i % 2 == 0:
+            detalles.append(models.DetalleOrden(id_producto=productos[0].id, cantidad=3, subtotal=17.0 * 3))
+            detalles.append(models.DetalleOrden(id_producto=productos[4].id, cantidad=2, subtotal=21.0 * 2))
+            total += (17.0 * 3) + (21.0 * 2)
+        else:
+            detalles.append(models.DetalleOrden(id_producto=productos[1].id, cantidad=1, subtotal=25.0))
+            detalles.append(models.DetalleOrden(id_producto=productos[2].id, cantidad=1, subtotal=30.0))
+            total += 25.0 + 30.0
+            
+        if i % 3 == 0:
+            detalles.append(models.DetalleOrden(id_producto=productos[3].id, cantidad=2, subtotal=21.0 * 2))
+            total += 21.0 * 2
+            
+        orden.detalles = detalles
+        orden.total = total
+        ordenes.append(orden)
+        
+    db.add_all(ordenes)
+    db.commit()
+    
+    ventas = []
+    for orden in ordenes:
+        venta = models.Venta(
+            id_orden=orden.id,
+            metodo_pago="efectivo" if orden.id % 2 == 0 else "tarjeta",
+            precio_total=orden.total,
+            fecha=orden.fecha
+        )
+        ventas.append(venta)
+        
+    db.add_all(ventas)
+    db.commit()
+    
+    print("  [+] Órdenes y Ventas de prueba insertadas con éxito.")
