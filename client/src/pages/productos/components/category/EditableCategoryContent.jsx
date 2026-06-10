@@ -45,7 +45,7 @@ export default function EditableCategoryContent({ category, onSave, onDelete }) 
                         className="h-6 w-6 rounded-md hover:bg-secundary/20 flex items-center justify-center mr-1 flex-shrink-0 transition-colors"
                     >
                         {selectedIcon ? (
-                            <ReactSVG src={selectedIcon} className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current text-secundaryText" />
+                            <ReactSVG src={selectedIcon} className="size-4 flex items-center justify-center [&_svg]:size-4 text-secundaryText" />
                         ) : (
                             <span className="w-4 h-4 bg-gray-200 rounded-full" />
                         )}
@@ -67,7 +67,7 @@ export default function EditableCategoryContent({ category, onSave, onDelete }) 
                                         : 'hover:bg-secundary/20 text-secundaryText'
                                 }`}
                             >
-                                <ReactSVG src={iconPath} className="size-5 flex items-center justify-center [&_svg]:size-5 [&_svg]:fill-current" />
+                                <ReactSVG src={iconPath} className="size-5 flex items-center justify-center [&_svg]:size-5" />
                             </button>
                         ))}
                     </div>

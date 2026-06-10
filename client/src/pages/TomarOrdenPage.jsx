@@ -91,7 +91,7 @@ export default function TomarOrdenPage() {
                                     <span className="flex-shrink-0 size-[18px] flex items-center justify-center">
                                         <ReactSVG
                                             src={catalog.categories.find(c => c.name === "Todos").icon}
-                                            className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current"
+                                            className="size-4 flex items-center justify-center [&_svg]:size-4"
                                         />
                                     </span>
                                 ) : (
@@ -112,7 +112,7 @@ export default function TomarOrdenPage() {
                                             key={cat.id}
                                             id={cat.name} 
                                             title={cat.name} 
-                                            icon={cat.icon ? <ReactSVG src={cat.icon} className="size-4 flex items-center justify-center [&_svg]:size-4 [&_svg]:fill-current" /> : null} 
+                                            icon={cat.icon ? <ReactSVG src={cat.icon} className="size-4 flex items-center justify-center [&_svg]:size-4" /> : null} 
                                         />
                                     ))}
                             </TabGroup>
