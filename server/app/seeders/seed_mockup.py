@@ -12,8 +12,8 @@ def seed(db: Session):
     db.commit()
 
     # 1. Crear Categorías Mockup
-    cat_alimentos = models.Categoria(nombre="Alimentos", icono="/iconos/taco.svg", es_sistema=False)
-    cat_bebidas = models.Categoria(nombre="Bebidas", icono="/iconos/soda.svg", es_sistema=False)
+    cat_alimentos = models.Categoria(nombre="Alimentos", icono="/iconos/cutlery_icon.svg", es_sistema=False)
+    cat_bebidas = models.Categoria(nombre="Bebidas", icono="/iconos/soft_drink_1_icon.svg", es_sistema=False)
     
     db.add_all([cat_alimentos, cat_bebidas])
     db.commit()

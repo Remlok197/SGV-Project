@@ -57,7 +57,7 @@ export default function NewCategoryInput({ onConfirm, className = "" }) {
                             className="h-6 w-6 rounded-md hover:bg-secundary/20 flex items-center justify-center mr-2 flex-shrink-0 transition-colors"
                         >
                             {selectedIcon ? (
-                                <ReactSVG src={selectedIcon} className="size-[18px] flex items-center justify-center [&_svg]:size-[18px] [&_svg]:fill-current text-primaryAction" />
+                                <ReactSVG src={selectedIcon} className="size-[18px] flex items-center justify-center [&_svg]:size-[18px] text-primaryAction" />
                             ) : (
                                 <Plus className="size-[18px] text-primaryAction" />
                             )}
@@ -79,7 +79,7 @@ export default function NewCategoryInput({ onConfirm, className = "" }) {
                                             : 'hover:bg-secundary/20 text-secundaryText'
                                     }`}
                                 >
-                                    <ReactSVG src={iconPath} className="size-5 flex items-center justify-center [&_svg]:size-5 [&_svg]:fill-current" />
+                                    <ReactSVG src={iconPath} className="size-5 flex items-center justify-center [&_svg]:size-5" />
                                 </button>
                             ))}
                         </div>
